@@ -1,0 +1,29 @@
+{
+  "name": "com.sector4f.pananda",
+  "displayName": "Pananda",
+  "version": "0.0.1",
+  "description": "App to explore the National Historical Commission of the Philippines historical markers.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eugene Alvin Villar",
+  "license": "MIT",
+  "cordova": {
+    "plugins": {
+      "cordova-plugin-whitelist": {},
+      "cordova-plugin-screen-orientation": {},
+      "cordova-plugin-statusbar": {}
+    },
+    "platforms": [
+      "android"
+    ]
+  },
+  "dependencies": {
+    "cordova-android": "~7.0.0",
+    "cordova-plugin-screen-orientation": "^3.0.1",
+    "cordova-plugin-statusbar": "^2.4.1",
+    "cordova-plugin-whitelist": "^1.3.3",
+    "es6-promise-plugin": "^4.2.2"
+  }
+}
