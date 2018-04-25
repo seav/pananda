@@ -7,19 +7,22 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
 -->
 <meta name="format-detection" content="telephone=no">
 <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
-<title>Pananda</title>
+<title>Panandâ</title>
 <link rel="stylesheet" href="css/onsenui.min.css">
 <link rel="stylesheet" href="css/onsen-css-components.min.css">
 <link rel="stylesheet" href="css/leaflet.css">
 <link rel="stylesheet" href="css/MarkerCluster.css">
 <link rel="stylesheet" href="css/leaflet.extra-markers.min.css">
-<link rel="stylesheet" href="css/pananda.css">
+<link rel="stylesheet" href="css/index.css">
 <script src="cordova.js"></script>
 <script src="js/jquery-3.3.1.min.js"></script>
 <script src="js/onsenui.min.js"></script>
 <script src="js/leaflet.js"></script>
 <script src="js/leaflet.markercluster.js"></script>
 <script src="js/leaflet.extra-markers.min.js"></script>
+<script src="js/imgcache.js"></script>
+<script src="data.js"></script>
+<script src="js/index.js"></script>
 </head>
 <body>
 
@@ -28,196 +31,16 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
 <template id="explore.html">
   <ons-page id="explore">
     <ons-toolbar>
-      <div class="left">Explore list</div>
+      <div class="left">Map view</div>
       <div class="right">
-        <ons-toolbar-button icon="md-view-list"></ons-toolbar-button>
-        <ons-toolbar-button icon="md-map" class="active"></ons-toolbar-button>
+        <ons-toolbar-button id="view-mode-button" icon="md-view-list"></ons-toolbar-button>
         <ons-toolbar-button icon="md-filter-list"></ons-toolbar-button>
-        <ons-toolbar-button icon="md-more-vert"></ons-toolbar-button>
+        <ons-toolbar-button icon="md-info-outline"></ons-toolbar-button>
       </div>
     </ons-toolbar>
-    <ons-list id="marker-list"></ons-list>
     <div id="map"></div>
-    <script>
-'use strict';
-
-ons.getScriptPage().onInit = function() {
-
-  Navigator = $('#navigator')[0];
-
-  let bg = $('#explore .page__background');
-  MapWidth  = bg.width();
-  MapHeight = bg.height();
-
-  // Set up toolbar buttons
-  let listButton = $('ons-toolbar-button[icon="md-view-list"]');
-  let mapButton = $('ons-toolbar-button[icon="md-map"]');
-  listButton.click(function() {
-    $('#explore ons-toolbar .left').text('Explore list');
-    listButton.removeClass('active');
-    mapButton.addClass('active');
-    $('#marker-list').show();
-    $('#map').hide();
-    applyFilters();
-  });
-  mapButton.click(function() {
-    showMap();
-  });
-  $('ons-toolbar-button[icon="md-filter-list"]').click(function() {
-    let setRadios = function () {
-      let vRadios = $('ons-radio[name="visited-option"]');
-      let bRadios = $('ons-radio[name="bookmarked-option"]');
-      [0, 1, 2].forEach(function(i) {
-        if (VisitedFilterValue    === vRadios[i].value) vRadios[i].checked = true;
-        if (BookmarkedFilterValue === bRadios[i].value) bRadios[i].checked = true;
-      });
-    }
-
-    let dialog = document.getElementById('filter-dialog');
-    if (dialog) {
-      dialog.show();
-      setRadios();
-    }
-    else {
-      ons.createElement('filter-dialog.html', {append: true}).then(function(dialog) {
-        dialog.show();
-        setRadios();
-      });
-    }
-  });
-
-  // Set up marker list
-  Object.keys(DATA).sort(function(a, b) {
-    if (DATA[a][0] < DATA[b][0]) return -1;
-    if (DATA[a][0] > DATA[b][0]) return 1;
-    return 0;
-  }).forEach(function(qid) {
-    DATA[qid].qid = qid;
-    var li = document.createElement('ons-list-item');
-    li.innerHTML = DATA[qid][0];
-    DATA[qid].indexItem = li;
-    $(li).click(function() {
-      Navigator.pushPage('details.html', {data: {info: DATA[qid]}});
-    });
-    $('#marker-list').append(li);
-
-    let status = localStorage.getItem(qid);
-    if (status) {
-      DATA[qid].visited    = status.substr(0, 1) === 'v';
-      DATA[qid].bookmarked = status.substr(1, 1) === 'b';
-    }
-    else {
-      DATA[qid].visited    = false;
-      DATA[qid].bookmarked = false;
-    }
-  });
-};
-
-function initMap() {
-
-  // Create map and set initial view
-  Map = new L.map('map');
-  Map.fitBounds([[MAX_PH_LAT, MAX_PH_LON], [MIN_PH_LAT, MIN_PH_LON]]);
-
-  // Add tile layer
-  let cartoLayer = new L.tileLayer(CARTO_LAYER_URL, {
-    attribution : CARTO_LAYER_ATTRIBUTION,
-    maxZoom     : TILE_LAYER_MAX_ZOOM,
-  }).addTo(Map);
-
-  // Initialize the map marker cluster
-  Cluster = new L.markerClusterGroup({
-    maxClusterRadius: function(z) {
-      if (z <=  15) return 50;
-      if (z === 16) return 40;
-      if (z === 17) return 30;
-      if (z === 18) return 20;
-      if (z >=  19) return 10;
-    },
-  }).addTo(Map);
-
-  // Add map markers
-  Object.keys(DATA).forEach(function(qid) {
-    let mapMarker = L.marker([DATA[qid][4] / COORD_FACTOR, DATA[qid][5] / COORD_FACTOR], {
-      icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' })
-    });
-    let wrapper = $('<div></div>');
-    let popupTitle = $('<div class="popup-title">' + DATA[qid][0] + '</div>');
-    wrapper.append(popupTitle)
-    let popupButton = $('<ons-button>VIEW</ons-button>');
-    popupButton.click(function() {
-      Navigator.pushPage('details.html', {data: {info: DATA[qid]}});
-    });
-    wrapper.append(popupButton);
-    mapMarker.bindPopup(wrapper[0], {closeButton: false});
-    Cluster.addLayer(mapMarker);
-    DATA[qid].mapMarker = mapMarker;
-    let popup = mapMarker.getPopup();
-    popup._qid = qid;
-    DATA[qid].popup = popup;
-  });
-}
-
-function showMap() {
-  $('#explore ons-toolbar .left').text('Explore map');
-  $('ons-toolbar-button[icon="md-view-list"]').addClass('active');
-  $('ons-toolbar-button[icon="md-map"]').removeClass('active');
-  $('#marker-list').hide();
-  $('#map').show();
-  $('#map').width(MapWidth);
-  $('#map').height(MapHeight);
-  if (!MapIsSeen) {
-    MapIsSeen = true;
-    initMap();
-    applyFilters();
-  }
-}
-
-function closeFilterDialog() {
-
-  // Update filter values
-  let vRadios = $('ons-radio[name="visited-option"]');
-  let bRadios = $('ons-radio[name="bookmarked-option"]');
-  [0, 1, 2].forEach(function(i) {
-    if (vRadios[i].checked) VisitedFilterValue    = vRadios[i].value;
-    if (bRadios[i].checked) BookmarkedFilterValue = bRadios[i].value;
-  });
-
-  applyFilters();
-
-  $('#filter-dialog')[0].hide();
-}
-
-function applyFilters() {
-  Object.keys(DATA).forEach(function(qid) {
-    let info = DATA[qid];
-    if (
-      (
-         VisitedFilterValue === 'any' ||
-        (VisitedFilterValue === 'yes' &&  info.visited ) ||
-        (VisitedFilterValue === 'no'  && !info.visited)
-      )
-      &&
-      (
-         BookmarkedFilterValue === 'any' ||
-        (BookmarkedFilterValue === 'yes' &&  info.bookmarked) ||
-        (BookmarkedFilterValue === 'no'  && !info.bookmarked)
-      )
-    ) {
-      $(info.indexItem).show();
-      if (Cluster && !Cluster.hasLayer(info.mapMarker)) {
-        Cluster.addLayer(info.mapMarker);
-      }
-    }
-    else {
-      $(info.indexItem).hide();
-      if (Cluster && Cluster.hasLayer(info.mapMarker)) {
-        Cluster.removeLayer(info.mapMarker);
-      }
-    }
-  });
-}
-    </script>
+    <ons-list id="marker-list"></ons-list>
+    <script>ons.getScriptPage().onInit = initMain</script>
   </ons-page>
 </template>
 
@@ -243,6 +66,10 @@ function applyFilters() {
         <td><ons-radio name="bookmarked-option" value="yes"></ons-radio></td>
         <td><ons-radio name="bookmarked-option" value="no"></ons-radio></td>
       </tr>
+      <tr class="new-section">
+        <td>Within</td>
+        <td colspan="3" id="distance-filter-wrapper"></td>
+      </tr>
     </table>
     <ons-button onclick="closeFilterDialog()">Apply</ons-button>
   </ons-dialog>
@@ -261,297 +88,41 @@ function applyFilters() {
       </div>
     </ons-toolbar>
     <div id="details-content"></div>
-    <script>
-'use strict';
-
-ons.getScriptPage().onInit = function() {
-
-  let info = this.data.info;
-
-  // Initialize status
-  // ------------------------------------------------------
-
-  let status = localStorage.getItem(info.qid);
-  if (status) {
-    status = {
-      visited    : status.substr(0, 1) === 'v',
-      bookmarked : status.substr(1, 1) === 'b',
-    };
-  }
-  else {
-    status = {
-      visited    : false,
-      bookmarked : false,
-    };
-  }
-
-  let visitedButton       = $('ons-toolbar-button[icon="md-eye"]');
-  let notVisitedButton    = $('ons-toolbar-button[icon="md-eye-off"]');
-  let bookmarkedButton    = $('ons-toolbar-button[icon="md-bookmark"]');
-  let notBookmarkedButton = $('ons-toolbar-button[icon="md-bookmark-outline"]');
-
-  if (status.visited) {
-    visitedButton.addClass('active');
-  }
-  else {
-    notVisitedButton.addClass('active');
-  }
-  if (status.bookmarked) {
-    bookmarkedButton.addClass('active');
-  }
-  else {
-    notBookmarkedButton.addClass('active');
-  }
-
-  visitedButton.click(function() {
-    status.visited = false;
-    saveStatus(info.qid, status);
-    visitedButton.removeClass('active');
-    notVisitedButton.addClass('active');
-    ons.notification.toast('Marked as not visited', {timeout: 1000});
-  });
-  notVisitedButton.click(function() {
-    status.visited = true;
-    saveStatus(info.qid, status);
-    visitedButton.addClass('active');
-    notVisitedButton.removeClass('active');
-    ons.notification.toast('Marked as visited', {timeout: 1000});
-  });
-  bookmarkedButton.click(function() {
-    status.bookmarked = false;
-    saveStatus(info.qid, status);
-    bookmarkedButton.removeClass('active');
-    notBookmarkedButton.addClass('active');
-    ons.notification.toast('Removed from bookmarks', {timeout: 1000});
-  });
-  notBookmarkedButton.click(function() {
-    status.bookmarked = true;
-    saveStatus(info.qid, status);
-    bookmarkedButton.addClass('active');
-    notBookmarkedButton.removeClass('active');
-    ons.notification.toast('Added to bookmarks', {timeout: 1000});
-  });
-
-  // Prepare header
-  // ------------------------------------------------------
-
-  let top = $(this).find('#details-content');
-
-  let header = $('<header class="marker"></header>');
-  header.append('<h1>' + info[0] + '</h1>');
-  if (info[1] !== true) header.append(generateMarkerDateElem(info[1]));
-  top.append(header);
-
-  // Construct card for marker details
-  // ------------------------------------------------------
-
-  let card = $('<ons-card></ons-card>');
-  top.append(card);
-
-  // Default is plaque(s) is monolingual
-  let l10nData = info[2];
-  let plaqueIsMonolingual = true;
-
-  // Adjust if plaque is multilingual
-  if (info[2].constructor === Array) {
-    l10nData = info[2][1];
-    plaqueIsMonolingual = false;
-  }
-
-  // Add photo for multilingual plaque
-  if (!plaqueIsMonolingual) {
-    card.append(generateFigureElem(info[2][0]));
-  }
-
-  let langCodes = $.grep(ORDERED_LANGUAGES, x => l10nData[x]);
-
-  let segment = $('<div class="segment segment--material"></div>');
-  if (langCodes.length === 1) segment.addClass('single');
-  card.append(segment);
-  langCodes.forEach(function(code, index) {
-
-    // Add language to segment
-    let segmentItem = $(
-      '<div class="segment__item segment--material__item">' +
-      '<input type="radio" class="segment__input segment--material__input" name="segment-lang"' +
-      (index === 0 ? ' checked' : '') +
-      '><div class="segment__button segment--material__button">' +
-      LANG_NAME[code] +
-      '</div>'
-    );
-    segmentItem.click(function() {
-      $('.marker-text.' + code).addClass('active');
-      $('.marker-text:not(.' + code + ')').removeClass('active');
-      if (info[1] === true) {
-        $('.marker-date.' + code).addClass('active');
-        $('.marker-date:not(.' + code + ')').removeClass('active');
-      }
-      $('.marker-figure.' + code).addClass('active');
-      $('.marker-figure:not(.' + code + ')').removeClass('active');
-    });
-    segment.append(segmentItem);
-
-    // Process differing dates
-    if (info[1] === true) {
-      let div = generateMarkerDateElem(l10nData[code][2]);
-      div.addClass(code);
-      if (index === 0) div.addClass('active');
-      card.append(div);
-    }
-
-    // Add photo for monolingual plaque
-    if (plaqueIsMonolingual) {
-      let figure = generateFigureElem(l10nData[code][0]);
-      figure.addClass('marker-figure');
-      figure.addClass(code);
-      if (index === 0) figure.addClass('active');
-      card.append(figure);
-    }
-
-    // Process text
-    let textData = (plaqueIsMonolingual ? l10nData[code][1] : l10nData[code]);
-    let textDiv = $('<div class="marker-text ' + code + (index === 0 ? ' active' : '') + '"></div>');
-    if (textData[0]) {
-      textDiv.append('<h2>' + textData[0] + '</h2>');
-      if (textData[1]) {
-        textDiv.append('<h3>' + textData[1] + '</h3>');
-      }
-    }
-    if (textData[2] === "") {
-      textDiv.append('<p class="nodata">No inscription encoded yet.</p>');
-    }
-    else if (textData[2] !== null) {
-      textDiv.append(textData[2]);
-    }
-    card.append(textDiv);
-  });
-
-  // Construct card for marker location
-  // ------------------------------------------------------
-
-  card = $('<ons-card class="location"></ons-card>');
-  top.append(card);
-  let button = $('<ons-button>View on map</ons-button>');
-  button.click(function() {
-    setTimeout(showMap, 1);
-    Navigator.popPage({
-      animation : 'slide',
-      callback  : function() {
-        Cluster.zoomToShowLayer(info.mapMarker, function() {
-          Map.setView([info[4] / COORD_FACTOR, info[5] / COORD_FACTOR], Map.getZoom());
-          if (!info.popup.isOpen()) {
-            info.mapMarker.openPopup();
-          }
-        });
-      },
-    });
-  });
-  if (info[6]) card.append(button);
-  if (info[6]) card.append('<p><strong>Address:</strong> ' + info[6]);
-  if (info[7]) card.append('<p><strong>Location description:</strong> ' + info[7]);
-  if (info[8]) card.append(generateFigureElem(info[8]));
-};
-
-function saveStatus(qid, status) {
-  DATA[qid].visited    = status.visited;
-  DATA[qid].bookmarked = status.bookmarked;
-  let serialStatus = (status.visited ? 'v' : 'x') + (status.bookmarked ? 'b' : 'x');
-  localStorage.setItem(qid, serialStatus);
-}
-
-function generateMarkerDateElem(dateString) {
-  let text;
-  if (!dateString) {
-    text = 'Installation date unknown';
-  }
-  else if (dateString.length === 4) {
-    text = 'Installed in ' + dateString;
-  }
-  else {
-    let date = new Date(dateString);
-    text = 'Unveiled on ' + date.toLocaleDateString("en-US", {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }
-  return $('<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ' + text + '</div>');
-}
-
-function generateFigureElem(photoData) {
-  let figure = $('<figure></figure>');
-  if (photoData) {
-    let id = Math.floor(Math.random() * 10000000);
-    figure.append('<ons-progress-circular id="' + id + '" indeterminate></ons-progress-circular>');
-    figure.append('<figcaption>' + photoData[1] + '</figcaption>');
-    $.ajax({
-      url: 'https://commons.wikimedia.org/w/api.php',
-      dataType: 'jsonp',
-      data: {
-        action     : 'query',
-        titles     : 'File:' + photoData[0],
-        prop       : 'imageinfo',
-        iiprop     : 'url',
-        iiurlwidth : CARD_WIDTH - 16,
-        format     : 'json'
-      },
-      success: function(response) {
-        let data = response.query.pages[Object.keys(response.query.pages)[0]].imageinfo[0];
-        let url = data.thumburl;
-        let height = Math.min(data.thumbheight, data.thumbwidth);
-        $('#' + id).replaceWith('<img src="' + url + '" height="' + height + '">');
-      }
-    });
-  }
-  else {
-    figure.addClass('nodata');
-    let height = Math.floor(CARD_WIDTH / 2) - 16;
-    figure.height(height);
-    figure.css('line-height', height + 'px');
-    figure.append('No photo available yet');
-  }
-  return figure;
-}
-    </script>
+    <script>ons.getScriptPage().onInit = initMarkerDetails</script>
   </ons-page>
 </template>
 
-<script src="data-v0.0.1.js"></script>
-<script>
-'use strict';
+<template id="about.html">
+  <ons-page id="about">
+    <ons-toolbar>
+      <div class="left">
+        <ons-back-button icon="md-arrow-left"></ons-back-button>
+        <span>About</span>
+      </div>
+    </ons-toolbar>
+    <img id="about-logo" src="img/logo.svg">
+    <p class="blurb"><strong>Panandâ</strong> lets you explore the historical markers of the National Historical Commission of the Philippines and its predecessor agencies. The data is updated regularly from Wikidata and Wikimedia Commons, which are sister projects of Wikipedia.</p>
+    <dl id="credits">
+      <dt>Design + code</dt>
+      <dd>Eugene Alvin Villar</dd>
+      <dt>Thanks to</dt>
+      <dd>Kjerrimyr Rodrigo Andrés</dd>
+      <dd>Jose Roel Balingit</dd>
+      <dd>James Joshua Lim</dd>
+      <dd>Carlo Joseph Moskito</dd>
+      <dd>Stephen John Pamorada</dd>
+      <dt>Published by</dt>
+      <dd>Sector4F</dd>
+    </dl>
+    <h2>Privacy policy</h2>
+    <p>The location data, when enabled by the user, is only used within the app and is never stored nor provided to any other device or server.</p>
+    <p>The record of which historical markers are visited or bookmarked is only stored within the app and is never provided to any other device or server. This also means that if the app is uninstalled, this data will be lost. This data also cannot currently be transferred or copied if you install the app on another device.</p>
+    <p>The app accesses the SD card in order to cache photos. This helps to minimize network data usage.</p>
+    <p>The app accesses external resources such as map tiles from CARTO and photos from Wikimedia Commons. CARTO and the Wikimedia Foundation may record these accesses in the form of IP addresses, timestamps, and mobile device OS data. No other personally identifiable information can be accessed by them.</p>
+    <footer>v0.1.0 © 2018, Sector4F</footer>
+    <script>ons.getScriptPage().onInit = initAbout</script>
+  </ons-page>
+</template>
 
-const LANG_NAME = {
-  'en' : 'English',
-  'tl' : 'Tagalog',
-  'ceb': 'Cebuano',
-  'ilo': 'Ilocano',
-  'es' : 'Spanish',
-  'de' : 'German',
-  'fr' : 'French',
-};
-const ORDERED_LANGUAGES = ['en', 'tl', 'ceb', 'ilo', 'es', 'de', 'fr'];
-
-const CARTO_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}.png';
-const CARTO_LAYER_ATTRIBUTION = 'Base map &copy; OSM (data), CARTO (style)';
-const TILE_LAYER_MAX_ZOOM     = 19;
-const MIN_PH_LAT              =   4.5;
-const MAX_PH_LAT              =  21.0;
-const MIN_PH_LON              = 116.5;
-const MAX_PH_LON              = 126.5;
-const COORD_FACTOR            = 100000;
-
-const CARD_WIDTH = Math.floor($(window).width() - 48);
-
-var MapWidth;
-var MapHeight;
-var Map;
-var Cluster;
-var MapIsSeen = false;
-var Navigator;
-
-var VisitedFilterValue    = 'any';
-var BookmarkedFilterValue = 'any';
-</script>
-<script type="text/javascript" src="js/index.js"></script>
 </body>
 </html>
