@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.sector4f.pananda" version="0.1.0" android-versionCode="100" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.sector4f.pananda" version="0.2.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Panandâ</name>
     <description>
         App to explore the National Historical Commission of the Philippines historical markers.
@@ -29,8 +29,7 @@
     <preference name="Orientation" value="portrait" />
     <preference name="StatusBarBackgroundColor" value="#112233" />
     <preference name="SplashScreen" value="screen" />
-    <preference name="AutoHideSplashScreen" value="true" />
-    <preference name="SplashScreenDelay" value="3000" />
+    <preference name="AutoHideSplashScreen" value="false" />
     <preference name="ShowSplashScreenSpinner" value="false" />
     <preference name="SplashMaintainAspectRatio" value="true" />
     <preference name="HeaderColor" value="#224466" />

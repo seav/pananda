@@ -1,8 +1,8 @@
 {
   "name": "com.sector4f.pananda",
   "displayName": "Panandâ",
-  "version": "0.1.0",
-  "description": "App to explore the National Historical Commission of the Philippines historical markers.",
+  "version": "0.2.0",
+  "description": "Explore the NHCP historical markers of the Philippines",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

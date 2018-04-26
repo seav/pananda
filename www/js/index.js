@@ -12,7 +12,7 @@ const LANGUAGE_NAME          = {
 const ORDERED_LANGUAGES      = ['en', 'tl', 'ceb', 'ilo', 'es', 'de', 'fr'];
 const DEGREE_LENGTH          = 110.96;  // kilometers, adjusted
 const DISTANCE_FILTERS       = [1, 2, 5, 10, 20, 50, 100];
-const TILE_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}.png';
+const TILE_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
 const TILE_LAYER_ATTRIBUTION = 'Base map &copy; OSM (data), CARTO (style)';
 const TILE_LAYER_MAX_ZOOM    = 19;
 const MIN_PH_LAT             =   4.5;
@@ -91,7 +91,8 @@ function initMain() {
   $('ons-toolbar-button[icon="md-filter-list" ]').click(showFilterDialog);
   $('ons-toolbar-button[icon="md-info-outline"]').click(showAbout       );
   initMap();
-  ons.notification.toast('Preparing data...', {timeout: 600});
+  if ('splashscreen' in navigator) navigator.splashscreen.hide();
+  ons.notification.toast('Preparing data...', {timeout: 500});
   setTimeout(
     function() {
       generateMapMarkers();
@@ -149,6 +150,7 @@ function generateMapMarkers() {
       if (z === 18) return 20;
       if (z >=  19) return 10;
     },
+    showCoverageOnHover: false,
   }).addTo(Map);
 
   let mapMarkers = [];
@@ -158,78 +160,84 @@ function generateMapMarkers() {
 
     let mapMarker = L.marker(
       [info.lat, info.lon],
-      {
-        icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' })
-      },
+      { icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' }) },
     );
     mapMarkers.push(mapMarker);
     info.mapMarker = mapMarker;
 
-    let wrapper = $('<div class="popup-wrapper"></div>');
-    if (info.visited   ) wrapper.addClass('visited'   );
-    if (info.bookmarked) wrapper.addClass('bookmarked');
-
-    let popupTitle = $('<div class="popup-title">' + info.name + '</div>');
-    wrapper.append(popupTitle)
-
-    let nvButton = $('<ons-button class="nv" modifier="quiet"><ons-icon icon="md-eye-off"         ></ons-icon></ons-button>');
-    let vButton  = $('<ons-button class="v"  modifier="quiet"><ons-icon icon="md-eye"             ></ons-icon></ons-button>');
-    let nbButton = $('<ons-button class="nb" modifier="quiet"><ons-icon icon="md-bookmark-outline"></ons-icon></ons-button>');
-    let bButton  = $('<ons-button class="b"  modifier="quiet"><ons-icon icon="md-bookmark"        ></ons-icon></ons-button>');
-    let dButton  = $('<ons-button class="d"  modifier="quiet">Details</ons-button>');
-    nvButton.click(function() { updateStatus(info.qid, 'visited'     ) });
-    vButton .click(function() { updateStatus(info.qid, 'unvisited'   ) });
-    nbButton.click(function() { updateStatus(info.qid, 'bookmarked'  ) });
-    bButton .click(function() { updateStatus(info.qid, 'unbookmarked') });
-    dButton .click(function() { OnsNavigator.pushPage('details.html', {data: {info: info}}) });
-    wrapper.append(nvButton);
-    wrapper.append(vButton );
-    wrapper.append(nbButton);
-    wrapper.append(bButton );
-    wrapper.append(dButton );
-
-    mapMarker.bindPopup(wrapper[0], {closeButton: false});
+    let popupContent = $(
+      '<div class="popup-wrapper' +
+        (info.visited    ? ' visited'    : '') +
+        (info.bookmarked ? ' bookmarked' : '') +
+      '">' +
+        '<div class="popup-title">' + info.name + '</div>' +
+        '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
+        '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
+        '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
+        '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+        '<ons-button data-qid="' + qid + '" modifier="quiet">Details</ons-button>' +
+      '</div>'
+    );
+    mapMarker.bindPopup(popupContent[0], { closeButton: false });
 
     let popup = mapMarker.getPopup();
     info.popup = popup;
   });
 
   Cluster.addLayers(mapMarkers);
+
+  // Event delegation
+  $('#map').click(function(e) {
+    let clickedElem = e.target;
+    if (clickedElem.tagName === 'SPAN' && ('action' in clickedElem.dataset)) {
+      e.stopPropagation();
+      updateStatus(clickedElem.dataset.qid, clickedElem.dataset.action);
+    }
+    else if (clickedElem.tagName === 'ONS-BUTTON') {
+      e.stopPropagation();
+      OnsNavigator.pushPage('details.html', { data: { info: DATA[clickedElem.dataset.qid] } });
+    }
+  });
 }
 
 function initList() {
-  let list = $('#marker-list');
+
+  let listItems = [];
   Object.keys(DATA).forEach(function(qid) {
-
     let info = DATA[qid];
-
-    let li = $('<ons-list-item></ons-list-item>');
-    if (info.visited   ) li.addClass('visited'   );
-    if (info.bookmarked) li.addClass('bookmarked');
-    $(li).click(function() {
-      OnsNavigator.pushPage('details.html', {data: {info: info}});
-    });
-
-    let center = $('<div class="center"><div class="name">' + info.name + '</div><div class="distance"></div></div>');
-    li.append(center);
-
-    let right = $('<div class="right"></div>');
-    let nvButton = $('<ons-button class="nv" modifier="quiet"><ons-icon icon="md-eye-off"         ></ons-icon></ons-button>');
-    let vButton  = $('<ons-button class="v"  modifier="quiet"><ons-icon icon="md-eye"             ></ons-icon></ons-button>');
-    let nbButton = $('<ons-button class="nb" modifier="quiet"><ons-icon icon="md-bookmark-outline"></ons-icon></ons-button>');
-    let bButton  = $('<ons-button class="b"  modifier="quiet"><ons-icon icon="md-bookmark"        ></ons-icon></ons-button>');
-    nvButton.click(function(e) { e.stopPropagation(); updateStatus(info.qid, 'visited'     ) });
-    vButton .click(function(e) { e.stopPropagation(); updateStatus(info.qid, 'unvisited'   ) });
-    nbButton.click(function(e) { e.stopPropagation(); updateStatus(info.qid, 'bookmarked'  ) });
-    bButton .click(function(e) { e.stopPropagation(); updateStatus(info.qid, 'unbookmarked') });
-    right.append(nvButton);
-    right.append(vButton );
-    right.append(nbButton);
-    right.append(bButton );
-    li.append(right);
-
+    let li = $(
+      '<ons-list-item data-qid="' + qid + '" class="' +
+        (info.visited    ? ' visited'    : '') +
+        (info.bookmarked ? ' bookmarked' : '') +
+      '">' +
+        '<div class="center">' +
+          '<div class="name">' + info.name + '</div>' +
+          '<div class="distance"></div>' +
+        '</div>' +
+        '<div class="right">' +
+          '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
+          '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
+          '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
+          '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+        '</div>' +
+      '</ons-list-item>'
+    );
     info.mainListItem = li[0];
-    list.append(li);
+    listItems.push(li);
+  });
+
+  let list = $('#marker-list');
+  list.append(listItems);
+  // Event delegation
+  list.click(function(e) {
+    let clickedElem = e.target;
+    if (clickedElem.tagName === 'SPAN' && ('action' in clickedElem.dataset)) {
+      updateStatus(clickedElem.dataset.qid, clickedElem.dataset.action);
+    }
+    else {
+      while (!('qid' in clickedElem.dataset)) clickedElem = clickedElem.parentElement;
+      OnsNavigator.pushPage('details.html', { data: { info: DATA[clickedElem.dataset.qid] } });
+    }
   });
 }
 
@@ -259,12 +267,9 @@ function showList() {
 function geolocateUser() {
 
   if (IsGeolocating) return;
-  IsGeolocating = true;
   let gpsButton = $('#gps-button ons-icon')[0];
-  gpsButton.setAttribute('icon', 'md-spinner');
-  gpsButton.setAttribute('spin', 'spin');
 
-  let stopGeolocatingUI = function() {
+  let stopGeolocatingUi = function() {
     IsGeolocating = false;
     gpsButton.setAttribute('icon', 'md-gps-dot');
     gpsButton.removeAttribute('spin');
@@ -272,10 +277,9 @@ function geolocateUser() {
 
   // Inner core function
   let getAndProcessLocation = function() {
-    ons.notification.toast('Getting GPS location...', {timeout: 1000});
     navigator.geolocation.getCurrentPosition(
       function(position) {
-        stopGeolocatingUI();
+        stopGeolocatingUi();
         // Invalidate all distances
         Object.keys(DATA).forEach(function(qid) {
           DATA[qid].distance = null;
@@ -305,7 +309,7 @@ function geolocateUser() {
         applyFilters();
       },
       function() {
-        stopGeolocatingUI();
+        stopGeolocatingUi();
         ons.notification.toast(
           'Cannot get GPS location',
           {
@@ -321,12 +325,20 @@ function geolocateUser() {
     );
   };
 
+  let startGeolocatingUi = function() {
+    IsGeolocating = true;
+    ons.notification.toast('Getting GPS location...', {timeout: 1000});
+    gpsButton.setAttribute('icon', 'md-spinner');
+    gpsButton.setAttribute('spin', 'spin');
+    setTimeout(getAndProcessLocation, 200);
+  };
+
   // Wrapper logic to check if GPS is enabled
   if (typeof gpsDetect !== 'undefined') {
     gpsDetect.checkGPS(
       function(gpsIsEnabled) {
         if (gpsIsEnabled) {
-          getAndProcessLocation();
+          startGeolocatingUi();
         }
         else {
           ons.notification.toast(
@@ -338,11 +350,11 @@ function geolocateUser() {
           );
         }
       },
-      getAndProcessLocation,
+      startGeolocatingUi,
     );
   }
   else {
-    getAndProcessLocation();
+    startGeolocatingUi();
   }
 }
 
@@ -400,7 +412,12 @@ function closeFilterDialog() {
   // Save filter values
   localStorage.setItem('visited-filter'   , VisitedFilterValue   );
   localStorage.setItem('bookmarked-filter', BookmarkedFilterValue);
-  localStorage.setItem('distance-filter'  , DistanceFilterValue  );
+  if (DistanceFilterValue) {
+    localStorage.setItem('distance-filter', DistanceFilterValue);
+  }
+  else {
+    localStorage.removeItem('distance-filter');
+  }
 
   applyFilters();
 
@@ -739,13 +756,20 @@ function generateFigureElem(photoData) {
         titles     : 'File:' + photoData.file,
         prop       : 'imageinfo',
         iiprop     : 'url',
-        iiurlwidth : CARD_WIDTH - 16,
+        iiurlwidth : (CARD_WIDTH - 16) * 2,  // Assume retina display
         format     : 'json'
       },
       success: function(response) {
         let data = response.query.pages[Object.keys(response.query.pages)[0]].imageinfo[0];
         let url = data.thumburl;
-        let height = Math.min(data.thumbheight, data.thumbwidth);
+        let height;
+        if (data.thumbwidth < (CARD_WIDTH - 16) * 2) {
+          // Image is too small
+          height = Math.min(data.thumbheight, CARD_WIDTH - 16);
+        }
+        else {
+          height = Math.floor(Math.min(data.thumbheight, data.thumbwidth) / 2);
+        }
         if (ImgCacheIsAvailable) {
           ImgCache.isCached(
             url,

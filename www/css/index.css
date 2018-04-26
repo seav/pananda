@@ -79,35 +79,44 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 
 .popup-wrapper ons-button {
   height: 36px;
-  padding: 0;
+  line-height: 36px;
+  padding: 0 8px;
   font-weight: 700;
 }
 
-.popup-wrapper ons-button.d {
-  padding: 0 8px;
-}
-
-.popup-wrapper ons-button ons-icon {
-  font-size: 22px;
+.popup-wrapper .zmdi {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
   width: 36px;
+  height: 36px;
+  line-height: 36px;
+  font-size: 22px;
+  text-align: center;
 }
 
-.popup-wrapper:not(.visited)    ons-button.nv ons-icon,
-.popup-wrapper:not(.bookmarked) ons-button.nb ons-icon {
+.popup-wrapper .zmdi-eye-off,
+.popup-wrapper .zmdi-bookmark-outline {
   color: #ccc;
 }
 
-.popup-wrapper.visited          ons-button.v,
-.popup-wrapper:not(.visited)    ons-button.nv,
-.popup-wrapper.bookmarked       ons-button.b,
-.popup-wrapper:not(.bookmarked) ons-button.nb {
+.popup-wrapper .zmdi-eye,
+.popup-wrapper .zmdi-bookmark {
+  color: #48b;
+}
+
+.popup-wrapper.visited          .zmdi-eye,
+.popup-wrapper:not(.visited)    .zmdi-eye-off,
+.popup-wrapper.bookmarked       .zmdi-bookmark,
+.popup-wrapper:not(.bookmarked) .zmdi-bookmark-outline {
   display: inline-block;
 }
 
-.popup-wrapper:not(.visited)    ons-button.v,
-.popup-wrapper.visited          ons-button.nv,
-.popup-wrapper:not(.bookmarked) ons-button.b,
-.popup-wrapper.bookmarked       ons-button.nb {
+.popup-wrapper:not(.visited)    .zmdi-eye,
+.popup-wrapper.visited          .zmdi-eye-off,
+.popup-wrapper:not(.bookmarked) .zmdi-bookmark,
+.popup-wrapper.bookmarked       .zmdi-bookmark-outline {
   display: none;
 }
 
@@ -133,32 +142,38 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   padding: 0 4px 0 0;
 }
 
-#marker-list ons-button {
-  height: 36px;
+#marker-list .zmdi {
+  display: inline-block;
+  margin: 0;
   padding: 0;
-}
-
-#marker-list ons-button ons-icon {
-  font-size: 22px;
   width: 36px;
+  height: 36px;
+  line-height: 36px;
+  font-size: 22px;
+  text-align: center;
 }
 
-#marker-list ons-list-item:not(.visited)    ons-button.nv ons-icon,
-#marker-list ons-list-item:not(.bookmarked) ons-button.nb ons-icon {
+#marker-list .zmdi-eye-off,
+#marker-list .zmdi-bookmark-outline {
   color: #ccc;
 }
 
-#marker-list ons-list-item.visited          ons-button.v,
-#marker-list ons-list-item:not(.visited)    ons-button.nv,
-#marker-list ons-list-item.bookmarked       ons-button.b,
-#marker-list ons-list-item:not(.bookmarked) ons-button.nb {
+#marker-list .zmdi-eye,
+#marker-list .zmdi-bookmark {
+  color: #48b;
+}
+
+#marker-list ons-list-item.visited          .zmdi-eye,
+#marker-list ons-list-item:not(.visited)    .zmdi-eye-off,
+#marker-list ons-list-item.bookmarked       .zmdi-bookmark,
+#marker-list ons-list-item:not(.bookmarked) .zmdi-bookmark-outline {
   display: inline-block;
 }
 
-#marker-list ons-list-item:not(.visited)    ons-button.v,
-#marker-list ons-list-item.visited          ons-button.nv,
-#marker-list ons-list-item:not(.bookmarked) ons-button.b,
-#marker-list ons-list-item.bookmarked       ons-button.nb {
+#marker-list ons-list-item:not(.visited)    .zmdi-eye,
+#marker-list ons-list-item.visited          .zmdi-eye-off,
+#marker-list ons-list-item:not(.bookmarked) .zmdi-bookmark,
+#marker-list ons-list-item.bookmarked       .zmdi-bookmark-outline {
   display: none;
 }
 
