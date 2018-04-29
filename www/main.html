@@ -40,6 +40,10 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
     </ons-toolbar>
     <div id="map"></div>
     <ons-list id="marker-list"></ons-list>
+    <svg id="init-progress" width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+      <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(68,102,136,0.2)" stroke-width="12" />
+      <circle id="init-progress-bar" cx="60" cy="60" r="54" fill="none" stroke="#468" stroke-width="12" stroke-dasharray="339.292" stroke-dashoffset="339.292" />
+    </svg>
     <script>ons.getScriptPage().onInit = initMain</script>
   </ons-page>
 </template>
@@ -67,7 +71,11 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
         <td><ons-radio name="bookmarked-option" value="no"></ons-radio></td>
       </tr>
       <tr class="new-section">
-        <td>Within</td>
+        <td>Region</td>
+        <td colspan="3" id="region-filter-wrapper"></td>
+      </tr>
+      <tr class="new-section">
+        <td>Distance</td>
         <td colspan="3" id="distance-filter-wrapper"></td>
       </tr>
     </table>
@@ -122,7 +130,7 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
     <p>The record of which historical markers are visited or bookmarked is only stored within the app and is never provided to any other device or server. This also means that if the app is uninstalled, this data will be lost. This data also cannot currently be transferred or copied if you install the app on another device.</p>
     <p>The app accesses the SD card in order to cache photos. This helps to minimize network data usage.</p>
     <p>The app accesses external resources such as map tiles from CARTO and photos from Wikimedia Commons. CARTO and the Wikimedia Foundation may record these accesses in the form of IP addresses, timestamps, and mobile device OS data. No other personally identifiable information can be accessed by them.</p>
-    <footer>v0.2.0 © 2018, Sector4F</footer>
+    <footer>v0.3.0 © 2018, Sector4F</footer>
     <script>ons.getScriptPage().onInit = initAbout</script>
   </ons-page>
 </template>

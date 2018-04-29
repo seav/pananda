@@ -21,26 +21,31 @@ const MIN_PH_LON             = 116.5;
 const MAX_PH_LON             = 126.5;
 const GPS_ZOOM_LEVEL         = 12;
 const CARD_WIDTH             = Math.floor($(window).width() - 48);
+const PROGRESS_MAX_VAL       = 339.292
+const CHUNK_LENGTH           = 50;
 
 // Global static helper objects
 var OnsNavigator;
 var Map;
 var Cluster;
-var GPSMarker;
+var GpsMarker;
 
 // Global static flags
-var ImgCacheIsAvailable    = false;
-
-// Global state and status flags
-var ViewMode               = 'map';
-var CurrentPosition;
-var IsGeolocating          = false;
-var ListShouldBeSorted     = true;
+var ImgCacheIsAvailable   = false;
 
 // Preferences
 var VisitedFilterValue;
 var BookmarkedFilterValue;
+var RegionFilterValue;
 var DistanceFilterValue;
+
+// Global state and status flags
+var Regions               = {};
+var ViewMode              = 'map';
+var CurrentPosition;
+var IsGeolocating         = false;
+var GpsOffToastIsShown    = false;
+var NumMarkersInitialized = 0;
 
 initApp();
 
@@ -50,21 +55,31 @@ function initApp() {
 
   // Further initialize in-memory DB
   Object.keys(DATA).forEach(function(qid) {
-    DATA[qid].qid = qid;
+    let info = DATA[qid];
+    info.qid = qid;
     let status = localStorage.getItem(qid);
     if (status) {
-      DATA[qid].visited    = status.substr(0, 1) === 'v';
-      DATA[qid].bookmarked = status.substr(1, 1) === 'b';
+      info.visited    = status.substr(0, 1) === 'v';
+      info.bookmarked = status.substr(1, 1) === 'b';
     }
     else {
-      DATA[qid].visited    = false;
-      DATA[qid].bookmarked = false;
+      info.visited    = false;
+      info.bookmarked = false;
+    }
+    if (typeof info.region === 'object') {
+      info.region.forEach(function(value) {
+        Regions[value] = true;
+      });
+    }
+    else {
+      Regions[DATA[qid].region] = true;
     }
   });
 
   // Initialize preferences
   VisitedFilterValue    = localStorage.getItem('visited-filter'   ) || 'any';
   BookmarkedFilterValue = localStorage.getItem('bookmarked-filter') || 'any';
+  RegionFilterValue     = localStorage.getItem('region-filter'    );
   DistanceFilterValue   = localStorage.getItem('distance-filter'  );
   if (DistanceFilterValue) DistanceFilterValue = parseInt(DistanceFilterValue);
 }
@@ -92,19 +107,21 @@ function initMain() {
   $('ons-toolbar-button[icon="md-info-outline"]').click(showAbout       );
   initMap();
   if ('splashscreen' in navigator) navigator.splashscreen.hide();
-  ons.notification.toast('Preparing data...', {timeout: 500});
-  setTimeout(
+  generateMapMarkers();
+  initList();
+  $('#explore').on(
+    'initfinished',
     function() {
-      generateMapMarkers();
-      initList();
+      $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
+      $('#init-progress').fadeOut();
       if (DistanceFilterValue) {
+        applyFilters();
         geolocateUser();
       }
       else {
-        applyFilters();
+        applyFilters(true);
       }
     },
-    500,
   );
 };
 
@@ -153,38 +170,55 @@ function generateMapMarkers() {
     showCoverageOnHover: false,
   }).addTo(Map);
 
-  let mapMarkers = [];
-  Object.keys(DATA).forEach(function(qid) {
+  let qids = Object.keys(DATA);
+  let numMarkers = qids.length;
+  let progressElem = $('#init-progress-bar')[0];
 
-    let info = DATA[qid];
+  let processChunk = function(startIdx) {
 
-    let mapMarker = L.marker(
-      [info.lat, info.lon],
-      { icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' }) },
-    );
-    mapMarkers.push(mapMarker);
-    info.mapMarker = mapMarker;
+    let idx = startIdx;
+    for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
 
-    let popupContent = $(
-      '<div class="popup-wrapper' +
-        (info.visited    ? ' visited'    : '') +
-        (info.bookmarked ? ' bookmarked' : '') +
-      '">' +
-        '<div class="popup-title">' + info.name + '</div>' +
-        '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
-        '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
-        '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
-        '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
-        '<ons-button data-qid="' + qid + '" modifier="quiet">Details</ons-button>' +
-      '</div>'
-    );
-    mapMarker.bindPopup(popupContent[0], { closeButton: false });
+      let qid = qids[idx];
+      let info = DATA[qid];
 
-    let popup = mapMarker.getPopup();
-    info.popup = popup;
-  });
+      let mapMarker = L.marker(
+        [info.lat, info.lon],
+        { icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' }) },
+      );
+      info.mapMarker = mapMarker;
 
-  Cluster.addLayers(mapMarkers);
+      let popupContent = $(
+        '<div class="popup-wrapper' +
+          (info.visited    ? ' visited'    : '') +
+          (info.bookmarked ? ' bookmarked' : '') +
+        '">' +
+          '<div class="popup-title">' + info.name + '</div>' +
+          '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
+          '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
+          '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
+          '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+          '<ons-button data-qid="' + qid + '" modifier="quiet">Details</ons-button>' +
+        '</div>'
+      );
+      mapMarker.bindPopup(popupContent[0], { closeButton: false });
+
+      let popup = mapMarker.getPopup();
+      info.popup = popup;
+
+      NumMarkersInitialized++;
+    }
+
+    let progress = NumMarkersInitialized / numMarkers / 2;
+    progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
+    if (idx + 1 < numMarkers) {
+      setTimeout(function() { processChunk(idx) }, 17);
+    }
+    else {
+      if (NumMarkersInitialized === numMarkers * 2) $('#explore').trigger('initfinished');
+    }
+  };
+  processChunk(0);
 
   // Event delegation
   $('#map').click(function(e) {
@@ -202,32 +236,55 @@ function generateMapMarkers() {
 
 function initList() {
 
+  let qids = Object.keys(DATA);
+  let numMarkers = qids.length;
   let listItems = [];
-  Object.keys(DATA).forEach(function(qid) {
-    let info = DATA[qid];
-    let li = $(
-      '<ons-list-item data-qid="' + qid + '" class="' +
-        (info.visited    ? ' visited'    : '') +
-        (info.bookmarked ? ' bookmarked' : '') +
-      '">' +
-        '<div class="center">' +
-          '<div class="name">' + info.name + '</div>' +
-          '<div class="distance"></div>' +
-        '</div>' +
-        '<div class="right">' +
-          '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
-          '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
-          '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
-          '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
-        '</div>' +
-      '</ons-list-item>'
-    );
-    info.mainListItem = li[0];
-    listItems.push(li);
-  });
-
+  let progressElem = $('#init-progress-bar')[0];
   let list = $('#marker-list');
-  list.append(listItems);
+
+  let processChunk = function(startIdx) {
+
+    let idx = startIdx;
+    for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
+
+      let qid = qids[idx];
+      let info = DATA[qid];
+      let li = $(
+        '<ons-list-item data-qid="' + qid + '" class="' +
+          (info.visited    ? ' visited'    : '') +
+          (info.bookmarked ? ' bookmarked' : '') +
+        '">' +
+          '<div class="center">' +
+            '<div class="name">' + info.name + '</div>' +
+            '<div class="address">' + info.macroAddress + '</div>' +
+            '<div class="distance"></div>' +
+          '</div>' +
+          '<div class="right">' +
+            '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
+            '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
+            '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
+            '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+          '</div>' +
+        '</ons-list-item>'
+      );
+      info.mainListItem = li[0];
+      listItems.push(li);
+
+      NumMarkersInitialized++;
+    }
+
+    let progress = NumMarkersInitialized / numMarkers / 2;
+    progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
+    if (idx + 1 < numMarkers) {
+      setTimeout(function() { processChunk(idx) }, 17);
+    }
+    else {
+      list.append(listItems);
+      if (NumMarkersInitialized === numMarkers * 2) $('#explore').trigger('initfinished');
+    }
+  }
+  processChunk(0);
+
   // Event delegation
   list.click(function(e) {
     let clickedElem = e.target;
@@ -252,7 +309,6 @@ function showMap() {
   $('#view-mode-button').attr('icon', 'md-view-list');
   $('#marker-list').hide();
   $('#map').show();
-  applyFilters();
 }
 
 function showList() {
@@ -261,7 +317,6 @@ function showList() {
   $('#view-mode-button').attr('icon', 'md-map');
   $('#marker-list').show();
   $('#map').hide();
-  applyFilters();
 }
 
 function geolocateUser() {
@@ -288,16 +343,16 @@ function geolocateUser() {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
         };
-        if (!GPSMarker) {
+        if (!GpsMarker) {
           let icon = L.icon({
             iconUrl    : 'img/red-marker.svg',
             iconSize   : [24, 24],
             iconAnchor : [12, 12],
           });
-          GPSMarker = L.marker(CurrentPosition, {icon: icon}).addTo(Map);
+          GpsMarker = L.marker(CurrentPosition, {icon: icon}).addTo(Map);
         }
         else {
-          GPSMarker.setLatLng(CurrentPosition);
+          GpsMarker.setLatLng(CurrentPosition);
         }
         if (Map.getZoom() < GPS_ZOOM_LEVEL) {
           Map.setView(CurrentPosition, GPS_ZOOM_LEVEL);
@@ -305,8 +360,7 @@ function geolocateUser() {
         else {
           Map.panTo(CurrentPosition);
         }
-        ListShouldBeSorted = true;
-        applyFilters();
+        if (DistanceFilterValue) applyFilters(true);
       },
       function() {
         stopGeolocatingUi();
@@ -327,7 +381,7 @@ function geolocateUser() {
 
   let startGeolocatingUi = function() {
     IsGeolocating = true;
-    ons.notification.toast('Getting GPS location...', {timeout: 1000});
+    ons.notification.toast('Getting GPS location...', { timeout: 1000 });
     gpsButton.setAttribute('icon', 'md-spinner');
     gpsButton.setAttribute('spin', 'spin');
     setTimeout(getAndProcessLocation, 200);
@@ -341,13 +395,10 @@ function geolocateUser() {
           startGeolocatingUi();
         }
         else {
-          ons.notification.toast(
-            'You need to turn GPS on first',
-            {
-              force       : true,
-              buttonLabel : 'OK',
-            },
-          );
+          if (!GpsOffToastIsShown) {
+            GpsOffToastIsShown = true;
+            ons.notification.toast('You need to turn GPS on first', { timeout: 2000 });
+          }
         }
       },
       startGeolocatingUi,
@@ -369,11 +420,24 @@ function showFilterDialog() {
     });
   };
 
+  let initRegionFilter = function() {
+    let select = $('<ons-select id="region-filter"></ons-select>');
+    select.append('<option val="0">any region</option>');
+    Object.keys(Regions).sort(function(a, b) {
+      if (a < b) return -1;
+      if (a > b) return  1;
+      return 0;
+    }).forEach(function(value) {
+      select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
+    });
+    $('#region-filter-wrapper').append(select);
+  };
+
   let initDistanceFilter = function() {
     let select = $('<ons-select id="distance-filter"></ons-select>');
     select.append('<option val="0">any distance</option>');
     DISTANCE_FILTERS.forEach(function(value) {
-      select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>' + value + ' km</option>');
+      select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>within ' + value + ' km</option>');
     });
     $('#distance-filter-wrapper').append(select);
   };
@@ -387,12 +451,18 @@ function showFilterDialog() {
     ons.createElement('filter-dialog.html', {append: true}).then(function(dialog) {
       dialog.show();
       setRadioButtons();
+      initRegionFilter();
       initDistanceFilter();
     });
   }
 }
 
 function closeFilterDialog() {
+
+  let prevVisited    = VisitedFilterValue;
+  let prevBookmarked = BookmarkedFilterValue;
+  let prevRegion     = RegionFilterValue;
+  let prevDistance   = DistanceFilterValue;
 
   // Update filter values
   let vRadios = $('ons-radio[name="visited-option"]');
@@ -401,17 +471,21 @@ function closeFilterDialog() {
     if (vRadios[i].checked) VisitedFilterValue    = vRadios[i].value;
     if (bRadios[i].checked) BookmarkedFilterValue = bRadios[i].value;
   });
+  let onsSelect = $('#region-filter')[0];
+  RegionFilterValue = onsSelect.selectedIndex === 0 ? null : onsSelect.value;
   let index = $('#distance-filter')[0].selectedIndex;
-  ListShouldBeSorted = (
-    ((DistanceFilterValue === null) !== (index === 0)) ||
-    (DistanceFilterValue && (DistanceFilterValue !== DISTANCE_FILTERS[index - 1]))
-  );
   DistanceFilterValue = index === 0 ? null : DISTANCE_FILTERS[index - 1];
   if (!CurrentPosition && index > 0) geolocateUser();
 
   // Save filter values
   localStorage.setItem('visited-filter'   , VisitedFilterValue   );
   localStorage.setItem('bookmarked-filter', BookmarkedFilterValue);
+  if (RegionFilterValue) {
+    localStorage.setItem('region-filter', RegionFilterValue);
+  }
+  else {
+    localStorage.removeItem('region-filter');
+  }
   if (DistanceFilterValue) {
     localStorage.setItem('distance-filter', DistanceFilterValue);
   }
@@ -419,29 +493,43 @@ function closeFilterDialog() {
     localStorage.removeItem('distance-filter');
   }
 
-  applyFilters();
+  if (
+    prevVisited    !== VisitedFilterValue    ||
+    prevBookmarked !== BookmarkedFilterValue ||
+    prevRegion     !== RegionFilterValue     ||
+    prevDistance   !== DistanceFilterValue
+  ) applyFilters(true);
 
   $('#filter-dialog')[0].hide();
 }
 
-function applyFilters() {
+function applyFilters(filterResultsShouldBeShown) {
+
+  console.log(filterResultsShouldBeShown);
 
   // Determine which markers are visible and show/hide map markers
   // and main list items accordingly
-  let visibleQids = []
+  let visibleQids = [];
+  let visibleMapMarkers = [];
   Object.keys(DATA).forEach(function(qid) {
     let info = DATA[qid];
     if (
       (
-         VisitedFilterValue === 'any' ||
-        (VisitedFilterValue === 'yes' &&  info.visited ) ||
-        (VisitedFilterValue === 'no'  && !info.visited)
+        VisitedFilterValue === 'any' ||
+        VisitedFilterValue === 'yes' &&  info.visited ||
+        VisitedFilterValue === 'no'  && !info.visited
       )
       &&
       (
-         BookmarkedFilterValue === 'any' ||
-        (BookmarkedFilterValue === 'yes' &&  info.bookmarked) ||
-        (BookmarkedFilterValue === 'no'  && !info.bookmarked)
+        BookmarkedFilterValue === 'any' ||
+        BookmarkedFilterValue === 'yes' &&  info.bookmarked ||
+        BookmarkedFilterValue === 'no'  && !info.bookmarked
+      )
+      &&
+      (
+        RegionFilterValue === null ||
+        typeof info.region === 'object' && info.region.includes(RegionFilterValue) ||
+        info.region === RegionFilterValue
       )
       &&
       (
@@ -451,41 +539,45 @@ function applyFilters() {
       )
     ) {
       visibleQids.push(qid);
+      visibleMapMarkers.push(info.mapMarker);
       $(info.mainListItem).show();
-      if (!Cluster.hasLayer(info.mapMarker)) Cluster.addLayer(info.mapMarker);
     }
     else {
       $(info.mainListItem).hide();
-      if (Cluster.hasLayer(info.mapMarker)) Cluster.removeLayer(info.mapMarker);
     }
   });
+  Cluster.clearLayers();
+  Cluster.addLayers(visibleMapMarkers);
 
   // Sort main list either by distance or alphabetically
-  if (ListShouldBeSorted) {
-    ListShouldBeSorted = false;
-    let list = document.getElementById('marker-list');
-    if (DistanceFilterValue) {
-      list.classList.remove('sorted-alphabetically');
-      visibleQids.sort(function(a, b) {
-        return DATA[a].distance - DATA[b].distance;
-      });
-    }
-    else {
-      list.classList.add('sorted-alphabetically');
-      visibleQids.sort(function(a, b) {
-        if (DATA[a].name < DATA[b].name) return -1;
-        if (DATA[a].name > DATA[b].name) return  1;
-        return 0;
-      });
-    }
-    visibleQids.forEach(function(qid) {
-      list.removeChild(DATA[qid].mainListItem);
-      list.appendChild(DATA[qid].mainListItem);
+  let list = document.getElementById('marker-list');
+  if (DistanceFilterValue && CurrentPosition) {
+    list.classList.remove('sorted-alphabetically');
+    visibleQids.sort(function(a, b) {
+      return DATA[a].distance - DATA[b].distance;
     });
   }
+  else {
+    list.classList.add('sorted-alphabetically');
+    visibleQids.sort(function(a, b) {
+      if (DATA[a].name < DATA[b].name) return -1;
+      if (DATA[a].name > DATA[b].name) return  1;
+      return 0;
+    });
+  }
+  visibleQids.forEach(function(qid) {
+    list.removeChild(DATA[qid].mainListItem);
+    list.appendChild(DATA[qid].mainListItem);
+  });
 
+  if (filterResultsShouldBeShown && visibleQids.length > 0) {
+    ons.notification.toast(
+      'Now displaying ' + visibleQids.length + ' marker' + (visibleQids.length > 1 ? 's' : ''),
+      { timeout: 2000 },
+    );
+  }
   if (visibleQids.length === 0) {
-    ons.notification.toast('No markers match the filters', {timeout: 2000});
+    ons.notification.toast('No markers match the filters', { timeout: 2000 });
   }
 }
 
@@ -530,7 +622,7 @@ function initMarkerDetails() {
 
   let info = this.data.info;
 
-  $('ons-back-button').click(applyFilters);
+  $('ons-back-button').click(function() { applyFilters(); });
 
   // Activate status buttons
   // ------------------------------------------------------

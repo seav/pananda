@@ -21,6 +21,17 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   color: rgba(255, 255, 255, 0.5);
 }
 
+#init-progress {
+  z-index: 10000;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  margin-top: -50px;
+  margin-left: -50px;
+}
+
 #map {
   display: block;
 }
@@ -128,13 +139,15 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   display: block;
 }
 
+#marker-list .address,
 #marker-list .distance {
   font-size: 12px;
   color: #888;
   text-transform: uppercase;
 }
 
-#marker-list.sorted-alphabetically .distance {
+#marker-list:not(.sorted-alphabetically) .address,
+#marker-list.sorted-alphabetically       .distance {
   display: none;
 }
 
@@ -186,8 +199,8 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   font-size: 20px;
 }
 
-#filter-dialog table {
-  width: 100%;
+#filter-dialog tr.new-section td {
+  padding-top: 8px;
 }
 
 #filter-dialog th {
@@ -197,28 +210,24 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 
 #filter-dialog td {
   padding: 0;
+  height: 32px;
+  vertical-align: middle;
 }
 
-#filter-dialog th:not(:first-child) {
-  text-align: center;
+#filter-dialog td:first-child {
+  padding-right: 16px;
 }
 
-#filter-dialog tr:not(:last-child) th, #filter-dialog tr:not(:last-child) td {
-  padding-bottom: 8px;
+#filter-dialog td:not(:first-child):not(:last-child) {
+  width: 50px;
 }
 
-#filter-dialog th:not(:last-child), #filter-dialog td:not(:last-child) {
-  padding-right: 8px;
-  width: 40px;
+#filter-dialog td:not([colspan]):last-child {
+  width: 20px;
 }
 
-#filter-dialog ons-radio {
-  display: block;
-  text-align: center;
-}
-
-#distance-filter-wrapper {
-  text-align: center;
+#filter-dialog ons-select {
+  width: 100%;
 }
 
 #filter-dialog ons-button {
