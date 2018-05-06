@@ -21,6 +21,8 @@ const MIN_PH_LON             = 116.5;
 const MAX_PH_LON             = 126.5;
 const GPS_ZOOM_LEVEL         = 12;
 const CARD_WIDTH             = Math.floor($(window).width() - 48);
+const PHOTO_MAX_WIDTH        = CARD_WIDTH - 16;
+const THUMBNAIL_URL_TEMPLATE = 'https://upload.wikimedia.org/wikipedia/commons/thumb/{hash}/{filename}/{width}px-{filename}';
 const PROGRESS_MAX_VAL       = 339.292
 const CHUNK_LENGTH           = 50;
 
@@ -89,7 +91,6 @@ function initCordova() {
   if (cordova.platformId == 'android') {
     StatusBar.backgroundColorByHexString("#123");
   }
-  ImgCache.options.debug = true;
   ImgCache.options.skipURIencoding = true;
   if (cordova.file.externalCacheDirectory) {
     ImgCache.options.cordovaFilesystemRoot = cordova.file.externalCacheDirectory;
@@ -505,8 +506,6 @@ function closeFilterDialog() {
 
 function applyFilters(filterResultsShouldBeShown) {
 
-  console.log(filterResultsShouldBeShown);
-
   // Determine which markers are visible and show/hide map markers
   // and main list items accordingly
   let visibleQids = [];
@@ -833,77 +832,59 @@ function generateFigureElem(photoData) {
 
   if (photoData) {
 
-    // Generate placeholder figure node tree
-    let randomId = Math.floor(Math.random() * 10000000);
-    figure.append('<ons-progress-circular id="' + randomId + '" indeterminate></ons-progress-circular>');
+    let width = photoData.width >= photoData.height ? PHOTO_MAX_WIDTH : PHOTO_MAX_WIDTH / photoData.height * photoData.width;
+    let height = width / photoData.width * photoData.height;
+    let url = THUMBNAIL_URL_TEMPLATE.replace('{hash}', photoData.hash.substr(0, 1) + '/' + photoData.hash.substr(0, 2));
+    url = url.replace('{width}', Math.floor(width) * 2);
+    url = url.replace(/\{filename\}/g, photoData.file.replace(/ /g, '_'));
+
+    let placeholder = $('<div class="placeholder"></div>');
+    placeholder.width(width);
+    placeholder.height(height);
+    figure.append(placeholder);
     figure.append('<figcaption>' + photoData.credit + '</figcaption>');
 
-    // Asyncronously fetch thumbnail URL from Commons API and replace placeholder
-    // TODO: "Cache" results; also implement cache validation
-    $.ajax({
-      url: 'https://commons.wikimedia.org/w/api.php',
-      dataType: 'jsonp',
-      data: {
-        action     : 'query',
-        titles     : 'File:' + photoData.file,
-        prop       : 'imageinfo',
-        iiprop     : 'url',
-        iiurlwidth : (CARD_WIDTH - 16) * 2,  // Assume retina display
-        format     : 'json'
-      },
-      success: function(response) {
-        let data = response.query.pages[Object.keys(response.query.pages)[0]].imageinfo[0];
-        let url = data.thumburl;
-        let height;
-        if (data.thumbwidth < (CARD_WIDTH - 16) * 2) {
-          // Image is too small
-          height = Math.min(data.thumbheight, CARD_WIDTH - 16);
-        }
-        else {
-          height = Math.floor(Math.min(data.thumbheight, data.thumbwidth) / 2);
-        }
-        if (ImgCacheIsAvailable) {
-          ImgCache.isCached(
-            url,
-            function(path, success) {
-              if (success) {
+    if (ImgCacheIsAvailable) {
+      // TODO: Implement cache validation
+      ImgCache.isCached(
+        url,
+        function(path, success) {
+          if (success) {
+            ImgCache.getCachedFileURL(
+              url,
+              function(url, path) {
+                replaceFigurePlaceholder(placeholder, path, width, height)
+              },
+              function() {
+                replaceFigurePlaceholder(placeholder, url, width, height)
+              },
+            );
+          }
+          else {
+            ImgCache.cacheFile(
+              url,
+              function () {
                 ImgCache.getCachedFileURL(
                   url,
                   function(url, path) {
-                    replaceFigurePlaceholder(randomId, path, height)
+                    replaceFigurePlaceholder(placeholder, path, width, height)
                   },
                   function() {
-                    replaceFigurePlaceholder(randomId, url, height)
+                    replaceFigurePlaceholder(placeholder, url, width, height)
                   },
                 );
-              }
-              else {
-                ImgCache.cacheFile(
-                  url,
-                  function () {
-                    ImgCache.getCachedFileURL(
-                      url,
-                      function(url, path) {
-                        replaceFigurePlaceholder(randomId, path, height)
-                      },
-                      function() {
-                        replaceFigurePlaceholder(randomId, url, height)
-                      },
-                    );
-                  },
-                  function() {
-                    replaceFigurePlaceholder(randomId, url, height)
-                  },
-                );
-              }
-            },
-          );
-        }
-        else {
-          replaceFigurePlaceholder(randomId, url, height)
-        }
-      }
-    });
+              },
+              function() {
+                replaceFigurePlaceholder(placeholder, url, width, height)
+              },
+            );
+          }
+        },
+      );
+    }
+    else {
+      replaceFigurePlaceholder(placeholder, url, width, height)
+    }
   }
 
   // No actual photo
@@ -918,8 +899,8 @@ function generateFigureElem(photoData) {
   return figure;
 }
 
-function replaceFigurePlaceholder(randomId, src, height) {
-  $('#' + randomId).replaceWith('<img src="' + src + '" height="' + height + '">');
+function replaceFigurePlaceholder(placeholder, src, width, height) {
+  placeholder.replaceWith('<img src="' + src + '" width="' + width +'" height="' + height + '">');
 }
 
 function initAbout() {

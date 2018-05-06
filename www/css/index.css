@@ -347,9 +347,10 @@ figure ons-progress-circular {
   margin: 30px auto;
 }
 
-figure img {
+figure .placeholder, figure img {
   display: block;
   margin: 0 auto;
+  background: #ddd;
 }
 
 figure figcaption {
