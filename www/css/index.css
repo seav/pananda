@@ -1,3 +1,6 @@
+ons-button {
+  font-weight: 700 !important;
+}
 
 #explore ons-toolbar .left {
   padding: 0 0 0 16px;
@@ -10,7 +13,6 @@
   text-align: center;
   color: white;
 }
-
 
 .back-button--material__icon {
   fill: white;
@@ -32,8 +34,14 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   margin-left: -50px;
 }
 
+#map, #main-list {
+  position: absolute;
+  transition: opacity;
+  transition-duration: 0.5s;
+}
+
 #map {
-  display: block;
+  z-index: 1;
 }
 
 #gps-button {
@@ -92,7 +100,6 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   height: 36px;
   line-height: 36px;
   padding: 0 8px;
-  font-weight: 700;
 }
 
 .popup-wrapper .zmdi {
@@ -131,31 +138,54 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   display: none;
 }
 
-#marker-list {
-  display: none;
+#main-list {
+  z-index: 0;
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-#marker-list ons-list-item .center {
+#main-list ons-search-input input {
+  border-radius: 0;
+  font-size: 16px;
+}
+
+#main-list #search-results-msg {
+  display: none;
+  z-index: 1;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-style: italic;
+  color: #468;
+  background: #f0f4f8;
+  box-shadow: 0 0 2px 0 rgba(0,0,0,.12), 0 2px 2px 0 rgba(0,0,0,.24), 0 1px 0 0 rgba(255,255,255,.06) inset; /* Copied from Onsen UI */
+}
+
+#main-list ons-list {
+  overflow-y: auto;
+}
+
+#main-list ons-list-item .center {
   display: block;
 }
 
-#marker-list .address,
-#marker-list .distance {
+#main-list .address,
+#main-list .distance {
   font-size: 12px;
   color: #888;
   text-transform: uppercase;
 }
 
-#marker-list:not(.sorted-alphabetically) .address,
-#marker-list.sorted-alphabetically       .distance {
+#main-list ons-list:not(.sorted-alphabetically) .address,
+#main-list ons-list.sorted-alphabetically       .distance {
   display: none;
 }
 
-#marker-list .right {
+#main-list .right {
   padding: 0 4px 0 0;
 }
 
-#marker-list .zmdi {
+#main-list .zmdi {
   display: inline-block;
   margin: 0;
   padding: 0;
@@ -166,28 +196,33 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   text-align: center;
 }
 
-#marker-list .zmdi-eye-off,
-#marker-list .zmdi-bookmark-outline {
+#main-list .zmdi-eye-off,
+#main-list .zmdi-bookmark-outline {
   color: #ccc;
 }
 
-#marker-list .zmdi-eye,
-#marker-list .zmdi-bookmark {
+#main-list .zmdi-eye,
+#main-list .zmdi-bookmark {
   color: #48b;
 }
 
-#marker-list ons-list-item.visited          .zmdi-eye,
-#marker-list ons-list-item:not(.visited)    .zmdi-eye-off,
-#marker-list ons-list-item.bookmarked       .zmdi-bookmark,
-#marker-list ons-list-item:not(.bookmarked) .zmdi-bookmark-outline {
+#main-list ons-list-item.visited          .zmdi-eye,
+#main-list ons-list-item:not(.visited)    .zmdi-eye-off,
+#main-list ons-list-item.bookmarked       .zmdi-bookmark,
+#main-list ons-list-item:not(.bookmarked) .zmdi-bookmark-outline {
   display: inline-block;
 }
 
-#marker-list ons-list-item:not(.visited)    .zmdi-eye,
-#marker-list ons-list-item.visited          .zmdi-eye-off,
-#marker-list ons-list-item:not(.bookmarked) .zmdi-bookmark,
-#marker-list ons-list-item.bookmarked       .zmdi-bookmark-outline {
+#main-list ons-list-item:not(.visited)    .zmdi-eye,
+#main-list ons-list-item.visited          .zmdi-eye-off,
+#main-list ons-list-item:not(.bookmarked) .zmdi-bookmark,
+#main-list ons-list-item.bookmarked       .zmdi-bookmark-outline {
   display: none;
+}
+
+#main-list #missing-info-notice {
+  display: none;
+  padding: 0 16px;
 }
 
 #filter-dialog .dialog-container {
@@ -233,7 +268,6 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 #filter-dialog ons-button {
   float: right;
   margin-top: 16px;
-  font-weight: 700;
 }
 
 #details.visited          ons-toolbar-button[icon="md-eye"             ],
@@ -335,8 +369,14 @@ figure {
 }
 
 figure.nodata {
-  font-size: 14px;
+  font-size: 16px;
   font-style: italic;
+}
+
+figure.nodata ons-button {
+  margin-top: 8px;
+  font-size: 14px;
+  font-style: normal;
 }
 
 *+figure {
@@ -380,26 +420,114 @@ figure figcaption {
   color: #888;
 }
 
+.wikipedia-links {
+  margin: 16px -16px -16px;
+  padding: 16px;
+  background: rgba(68, 136, 187, 0.2);
+}
+
+.wikipedia-links h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.wikipedia-links a {
+  color: #246;
+}
+
+.card.location {
+  min-height: 68px;
+}
 .card.location ons-button {
   float: right;
   margin: 0 0 16px 16px;
+  font-size: 22px;
+}
+
+#loc-menu .popover__content {
+  min-width: 275px;
 }
 
 .card.location ons-button+p {
   margin-top: 0;
 }
 
-#about .page__background {
+.misc-page .page__background {
   background: #fff;
 }
 
-#about .page__content {
+.misc-page .page__content {
   padding: 16px;
+}
+
+.misc-page h2 {
+  margin: 24px 0 8px;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.misc-page p,
+#resources p {
+  line-height: 1.5;
+}
+
+.misc-page p a {
+  color: #468;
+}
+
+.end-of-page {
+  font-size: 22px;
+  text-align: center;
+  color: #468;
+}
+
+#contributing .blurb,
+#resources .blurb,
+#privacy-policy .blurb {
+  font-size: 18px;
+  line-height: 28px;
+  color: #468;
+}
+
+#resources .blurb {
+  padding: 0 16px;
+}
+
+#resources ons-card {
+  margin: 12px;
+}
+
+#resources header {
+  margin: -16px -16px 16px;
+  padding: 12px 16px;
+  background: rgba(68, 136, 187, 0.4);
+}
+
+#resources h2 {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+#resources h2 a {
+  color: #468;
+}
+
+#resources h3 {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 400;
+  font-style: italic;
+  color: #666;
 }
 
 #about-logo {
   display: block;
-  margin: 0 auto 24px;
+  margin: 24px auto;
 }
 
 #about .blurb {
@@ -413,12 +541,26 @@ figure figcaption {
   color: #246;
 }
 
-#about h2 {
-  margin: 24px 0 8px;
-  padding: 16px 0 0;
+#about .socmed-links {
+  margin-top: 24px;
+  padding: 16px;
   border-top: 1px solid #ccc;
-  font-size: 20px;
-  font-weight: 700;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+}
+
+#about .socmed-links a {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+}
+
+#about .socmed-links a+a {
+  margin-left: 24px;
+}
+
+#about .socmed-links img {
+  width: 48px;
 }
 
 #about p {

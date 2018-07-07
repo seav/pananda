@@ -5,26 +5,28 @@ const LANGUAGE_NAME          = {
                                  'tl' : 'Tagalog',
                                  'ceb': 'Cebuano',
                                  'ilo': 'Ilocano',
+                                 'pam': 'Kapampangan',
                                  'es' : 'Spanish',
                                  'de' : 'German',
                                  'fr' : 'French',
                                };
-const ORDERED_LANGUAGES      = ['en', 'tl', 'ceb', 'ilo', 'es', 'de', 'fr'];
+const ORDERED_LANGUAGES      = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
 const DEGREE_LENGTH          = 110.96;  // kilometers, adjusted
-const DISTANCE_FILTERS       = [1, 2, 5, 10, 20, 50, 100];
+const DISTANCE_FILTERS       = [1, 2, 5, 10, 20, 50, 100];  // kilometers
 const TILE_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
 const TILE_LAYER_ATTRIBUTION = 'Base map &copy; OSM (data), CARTO (style)';
 const TILE_LAYER_MAX_ZOOM    = 19;
-const MIN_PH_LAT             =   4.5;
-const MAX_PH_LAT             =  21.0;
-const MIN_PH_LON             = 116.5;
-const MAX_PH_LON             = 126.5;
+const MIN_PH_LAT             =   4.5;  // degrees
+const MAX_PH_LAT             =  21.0;  // degrees
+const MIN_PH_LON             = 116.5;  // degrees
+const MAX_PH_LON             = 126.5;  // degrees
 const GPS_ZOOM_LEVEL         = 12;
-const CARD_WIDTH             = Math.floor($(window).width() - 48);
-const PHOTO_MAX_WIDTH        = CARD_WIDTH - 16;
+const CARD_WIDTH             = Math.floor($(window).width() - 48);  // pixels
+const PHOTO_MAX_WIDTH        = CARD_WIDTH - 16;  // pixels
 const THUMBNAIL_URL_TEMPLATE = 'https://upload.wikimedia.org/wikipedia/commons/thumb/{hash}/{filename}/{width}px-{filename}';
-const PROGRESS_MAX_VAL       = 339.292
-const CHUNK_LENGTH           = 50;
+const PROGRESS_MAX_VAL       = 339.292;
+const CHUNK_LENGTH           = 50;   // pixels
+const SEARCH_DELAY           = 500;  // milliseconds
 
 // Global static helper objects
 var OnsNavigator;
@@ -48,6 +50,7 @@ var CurrentPosition;
 var IsGeolocating         = false;
 var GpsOffToastIsShown    = false;
 var NumMarkersInitialized = 0;
+var CurrentMarkerInfo;
 
 initApp();
 
@@ -104,23 +107,24 @@ function initCordova() {
 function initMain() {
   OnsNavigator = $('#navigator')[0];
   $('#view-mode-button').click(toggleView);
-  $('ons-toolbar-button[icon="md-filter-list" ]').click(showFilterDialog);
-  $('ons-toolbar-button[icon="md-info-outline"]').click(showAbout       );
+  $('ons-toolbar-button[icon="md-filter-list"]').click(showFilterDialog);
+  $('ons-toolbar-button[icon="md-more-vert"  ]').click(showMainMenu    );
   initMap();
   if ('splashscreen' in navigator) navigator.splashscreen.hide();
   generateMapMarkers();
   initList();
+  initFilterDialog();
   $('#explore').on(
     'initfinished',
     function() {
       $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
       $('#init-progress').fadeOut();
       if (DistanceFilterValue) {
-        applyFilters();
+        applyFilters(true);
         geolocateUser();
       }
       else {
-        applyFilters(true);
+        applyFilters();
       }
     },
   );
@@ -212,7 +216,7 @@ function generateMapMarkers() {
 
     let progress = NumMarkersInitialized / numMarkers / 2;
     progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
-    if (idx + 1 < numMarkers) {
+    if (idx + 1 <= numMarkers) {
       setTimeout(function() { processChunk(idx) }, 17);
     }
     else {
@@ -237,11 +241,25 @@ function generateMapMarkers() {
 
 function initList() {
 
+  let bg = $('#explore .page__background');
+  $('#main-list').width (bg.width ());
+  $('#main-list').height(bg.height());
+
+  let searchInputTimeoutId;
+  $('#main-list ons-search-input input').on(
+    'input',
+    function() {
+      clearTimeout(searchInputTimeoutId);
+      searchInputTimeoutId = setTimeout(applySearch, SEARCH_DELAY);
+    },
+  );
+  $('#missing-info-notice ons-button').click(showContributing);
+
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
   let listItems = [];
   let progressElem = $('#init-progress-bar')[0];
-  let list = $('#marker-list');
+  let list = $('#main-list ons-list');
 
   let processChunk = function(startIdx) {
 
@@ -276,7 +294,7 @@ function initList() {
 
     let progress = NumMarkersInitialized / numMarkers / 2;
     progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
-    if (idx + 1 < numMarkers) {
+    if (idx + 1 <= numMarkers) {
       setTimeout(function() { processChunk(idx) }, 17);
     }
     else {
@@ -299,6 +317,29 @@ function initList() {
   });
 }
 
+function initFilterDialog() {
+
+  let select;
+
+  select = $('<ons-select id="region-filter"></ons-select>');
+  select.append('<option val="0">any region</option>');
+  Object.keys(Regions).sort(function(a, b) {
+    if (a < b) return -1;
+    if (a > b) return  1;
+    return 0;
+  }).forEach(function(value) {
+    select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
+  });
+  $('#region-filter-wrapper').append(select);
+
+  select = $('<ons-select id="distance-filter"></ons-select>');
+  select.append('<option val="0">any distance</option>');
+  DISTANCE_FILTERS.forEach(function(value) {
+    select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>within ' + value + ' km</option>');
+  });
+  $('#distance-filter-wrapper').append(select);
+}
+
 function toggleView() {
   if (ViewMode === 'map') showList();
   else                    showMap();
@@ -308,16 +349,20 @@ function showMap() {
   ViewMode = 'map';
   $('#explore ons-toolbar .left').text('Map view');
   $('#view-mode-button').attr('icon', 'md-view-list');
-  $('#marker-list').hide();
-  $('#map').show();
+  $('#map').css('z-index', 1);
+  $('#map').css('opacity', 1);
+  $('#main-list').css('z-index', 0);
+  $('#main-list').css('opacity', 0);
 }
 
 function showList() {
   ViewMode = 'list';
   $('#explore ons-toolbar .left').text('List view');
   $('#view-mode-button').attr('icon', 'md-map');
-  $('#marker-list').show();
-  $('#map').hide();
+  $('#main-list').css('z-index', 1);
+  $('#main-list').css('opacity', 1);
+  $('#map').css('z-index', 0);
+  $('#map').css('opacity', 0);
 }
 
 function geolocateUser() {
@@ -361,7 +406,7 @@ function geolocateUser() {
         else {
           Map.panTo(CurrentPosition);
         }
-        if (DistanceFilterValue) applyFilters(true);
+        if (DistanceFilterValue) applyFilters();
       },
       function() {
         stopGeolocatingUi();
@@ -398,7 +443,8 @@ function geolocateUser() {
         else {
           if (!GpsOffToastIsShown) {
             GpsOffToastIsShown = true;
-            ons.notification.toast('You need to turn GPS on first', { timeout: 2000 });
+            let promise = ons.notification.toast('You need to turn GPS on first', { timeout: 2000 });
+            promise.then(function() { GpsOffToastIsShown = false });
           }
         }
       },
@@ -407,6 +453,54 @@ function geolocateUser() {
   }
   else {
     startGeolocatingUi();
+  }
+}
+
+function applySearch() {
+
+  // Prepare query
+  let query = $('#main-list ons-search-input input')[0].value;
+  query = query.replace(/^\s+|\s+$/g, '');  // Remove trailing spaces
+  query = query.replace(/[[\]{}()*+!<=:?\/\\^$|#,@]/g, '');  // Remove some punctuation
+  query = query.replace(/\./g, '\\$&');  // Escape periods
+  let terms = query.split(/\s+/);
+  let regex = new RegExp(terms.map(x => '(?=.*' + x + ')').join(''), 'i');
+
+  // Perform search filtering
+  let numPotentialResults = 0;
+  let numActualResults    = 0;
+  Object.values(DATA).forEach(function(info) {
+    if (!info.filtered) return;
+    numPotentialResults++;
+    if (regex.test(info.name + ' ' + info.macroAddress)) {
+      numActualResults++;
+      $(info.mainListItem).show();
+    }
+    else {
+      $(info.mainListItem).hide();
+    }
+  });
+
+  // Control messages
+  if (query.length > 0) {
+    let msg = $('#search-results-msg');
+    if (numActualResults === 0) {
+      msg.text('No results');
+    }
+    else {
+      msg.text('Showing ' + numActualResults + ' result' + (numActualResults > 1 ? 's' : '') + ' out of ' + numPotentialResults);
+    }
+    msg.show();
+    if (numActualResults === 0) {
+      $('#missing-info-notice').show();
+    }
+    else {
+      $('#missing-info-notice').hide();
+    }
+  }
+  else {
+    $('#search-results-msg').hide();
+    $('#missing-info-notice').hide();
   }
 }
 
@@ -421,41 +515,9 @@ function showFilterDialog() {
     });
   };
 
-  let initRegionFilter = function() {
-    let select = $('<ons-select id="region-filter"></ons-select>');
-    select.append('<option val="0">any region</option>');
-    Object.keys(Regions).sort(function(a, b) {
-      if (a < b) return -1;
-      if (a > b) return  1;
-      return 0;
-    }).forEach(function(value) {
-      select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
-    });
-    $('#region-filter-wrapper').append(select);
-  };
-
-  let initDistanceFilter = function() {
-    let select = $('<ons-select id="distance-filter"></ons-select>');
-    select.append('<option val="0">any distance</option>');
-    DISTANCE_FILTERS.forEach(function(value) {
-      select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>within ' + value + ' km</option>');
-    });
-    $('#distance-filter-wrapper').append(select);
-  };
-
   let dialog = document.getElementById('filter-dialog');
-  if (dialog) {
-    dialog.show();
-    setRadioButtons();
-  }
-  else {
-    ons.createElement('filter-dialog.html', {append: true}).then(function(dialog) {
-      dialog.show();
-      setRadioButtons();
-      initRegionFilter();
-      initDistanceFilter();
-    });
-  }
+  dialog.show();
+  setRadioButtons();
 }
 
 function closeFilterDialog() {
@@ -494,17 +556,21 @@ function closeFilterDialog() {
     localStorage.removeItem('distance-filter');
   }
 
+  // If filter values have changed, reset search bar and apply filters
   if (
     prevVisited    !== VisitedFilterValue    ||
     prevBookmarked !== BookmarkedFilterValue ||
     prevRegion     !== RegionFilterValue     ||
     prevDistance   !== DistanceFilterValue
-  ) applyFilters(true);
+  ) {
+    $('#main-list ons-search-input input')[0].value = '';
+    applyFilters();
+  }
 
   $('#filter-dialog')[0].hide();
 }
 
-function applyFilters(filterResultsShouldBeShown) {
+function applyFilters(suppressToast) {
 
   // Determine which markers are visible and show/hide map markers
   // and main list items accordingly
@@ -540,16 +606,18 @@ function applyFilters(filterResultsShouldBeShown) {
       visibleQids.push(qid);
       visibleMapMarkers.push(info.mapMarker);
       $(info.mainListItem).show();
+      info.filtered = true;
     }
     else {
       $(info.mainListItem).hide();
+      info.filtered = false;
     }
   });
   Cluster.clearLayers();
   Cluster.addLayers(visibleMapMarkers);
 
   // Sort main list either by distance or alphabetically
-  let list = document.getElementById('marker-list');
+  let list = document.querySelector('#main-list ons-list');
   if (DistanceFilterValue && CurrentPosition) {
     list.classList.remove('sorted-alphabetically');
     visibleQids.sort(function(a, b) {
@@ -569,13 +637,19 @@ function applyFilters(filterResultsShouldBeShown) {
     list.appendChild(DATA[qid].mainListItem);
   });
 
-  if (filterResultsShouldBeShown && visibleQids.length > 0) {
+  // If the distance filter has kicked in because of a delay in getting
+  // the GPS location, we need to re-apply the search
+  applySearch();
+
+  // Show toast message as needed
+  let numFiltered = visibleQids.length;
+  if (!suppressToast && numFiltered > 0) {
     ons.notification.toast(
-      'Now displaying ' + visibleQids.length + ' marker' + (visibleQids.length > 1 ? 's' : ''),
+      'Now showing ' + numFiltered + ' marker' + (numFiltered > 1 ? 's' : ''),
       { timeout: 2000 },
     );
   }
-  if (visibleQids.length === 0) {
+  if (numFiltered === 0) {
     ons.notification.toast('No markers match the filters', { timeout: 2000 });
   }
 }
@@ -613,15 +687,34 @@ function computeDistanceToMarker(info) {
   info.mainListItem.querySelector('.distance').innerHTML = distanceLabel;
 }
 
-function showAbout() {
-  OnsNavigator.pushPage('about.html');
+function showMainMenu() {
+  let button = $('ons-toolbar-button[icon="md-more-vert"  ]')[0];
+  let menu = document.getElementById('main-menu');
+  menu.show(button);
+}
+
+function showMiscPage(templateId) {
+  document.getElementById('main-menu').hide();
+  OnsNavigator.pushPage(templateId);
+}
+
+function showContributing () { showMiscPage('contributing.html'  ); }
+function showResources    () { showMiscPage('resources.html'     ); }
+function showPrivacyPolicy() { showMiscPage('privacy-policy.html'); }
+function showAbout        () { showMiscPage('about.html'         ); }
+
+function initAbout() {
+  $('#about-logo').width(Math.floor(window.innerWidth / 3));
 }
 
 function initMarkerDetails() {
 
   let info = this.data.info;
+  CurrentMarkerInfo = info;
 
-  $('ons-back-button').click(function() { applyFilters(); });
+  // Filters are applied when going back because the user
+  // may have updated the visited/bookmarked status
+  $('ons-back-button').click(function() { applyFilters(true) });
 
   // Activate status buttons
   // ------------------------------------------------------
@@ -731,34 +824,159 @@ function initMarkerDetails() {
     card.append(textDiv);
   });
 
+  // Add Wikipedia links
+  if (info.wikipedia) {
+    let linksDiv = $('<div class="wikipedia-links"><h3>Learn more on Wikipedia</h3></div>');
+    Object.keys(info.wikipedia).forEach(function(title) {
+      let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
+      let linkP = $('<p><a target="_system" href="https://en.wikipedia.org/wiki/' + escape(urlPath) + '">' + title + '</a></p>');
+      linksDiv.append(linkP);
+    });
+    card.append(linksDiv);
+  }
+
   // Construct card for marker location
   // ------------------------------------------------------
 
   card = $('<ons-card class="location"></ons-card>');
   top.append(card);
-  let button = $('<ons-button>View on map</ons-button>');
-  button.click(function() {
-    setTimeout(showMap, 1);
-    OnsNavigator.popPage({
-      animation : 'slide',
-      callback  : function() {
-        Cluster.zoomToShowLayer(
-          info.mapMarker,
-          function() {
-            Map.panTo([info.lat, info.lon]);
-            if (!info.popup.isOpen()) {
-              info.mapMarker.openPopup();
-            }
-          },
-        );
-      },
-    });
+
+  let button = $('<ons-button><ons-icon icon="md-more-vert"></ons-icon></ons-button>');
+  button.click(function(evt) {
+    let menu = document.getElementById('loc-menu');
+    menu.show(evt);
   });
   card.append(button);
+
   if (info.address ) card.append('<p><strong>Address:</strong> ' + info.address);
   if (info.locDesc ) card.append('<p><strong>Location description:</strong> ' + info.locDesc);
   if (info.locPhoto) card.append(generateFigureElem(info.locPhoto));
 };
+
+function generateMarkerDateElem(dateString) {
+  let text;
+  if (!dateString) {
+    text = 'Unveiling date unknown';
+  }
+  else if (dateString.length === 4) {
+    text = 'Unveiled in ' + dateString;
+  }
+  else {
+    let date = new Date(dateString);
+    text = 'Unveiled on ' + date.toLocaleDateString(
+      'en-US',
+      {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      },
+    );
+  }
+  return $('<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ' + text + '</div>');
+}
+
+function generateFigureElem(photoData) {
+
+  let figure = $('<figure></figure>');
+
+  if (photoData) {
+
+    let width = photoData.width >= photoData.height ? PHOTO_MAX_WIDTH : PHOTO_MAX_WIDTH / photoData.height * photoData.width;
+    let height = width / photoData.width * photoData.height;
+    let url = THUMBNAIL_URL_TEMPLATE.replace('{hash}', photoData.hash.substr(0, 1) + '/' + photoData.hash.substr(0, 2));
+    url = url.replace('{width}', Math.floor(width) * 2);
+    url = url.replace(/\{filename\}/g, photoData.file.replace(/ /g, '_'));
+
+    let placeholder = $('<div class="placeholder"></div>');
+    placeholder.width(width);
+    placeholder.height(height);
+    figure.append(placeholder);
+    figure.append('<figcaption>' + photoData.credit + '</figcaption>');
+
+    if (ImgCacheIsAvailable) {
+      // TODO: Implement cache validation
+      ImgCache.isCached(
+        url,
+        function(path, success) {
+          if (success) {
+            ImgCache.getCachedFileURL(
+              url,
+              function(url, path) {
+                replaceFigurePlaceholder(placeholder, path, width, height);
+              },
+              function() {
+                replaceFigurePlaceholder(placeholder, url, width, height);
+              },
+            );
+          }
+          else {
+            ImgCache.cacheFile(
+              url,
+              function () {
+                ImgCache.getCachedFileURL(
+                  url,
+                  function(url, path) {
+                    replaceFigurePlaceholder(placeholder, path, width, height);
+                  },
+                  function() {
+                    replaceFigurePlaceholder(placeholder, url, width, height);
+                  },
+                );
+              },
+              function() {
+                replaceFigurePlaceholder(placeholder, url, width, height);
+              },
+            );
+          }
+        },
+      );
+    }
+    else {
+      replaceFigurePlaceholder(placeholder, url, width, height);
+    }
+  }
+
+  // No actual photo
+  else {
+    figure.addClass('nodata');
+    let padding = Math.floor(CARD_WIDTH / 5);
+    figure.css('padding', padding + 'px 16px');
+    figure.append('<div>No photo available yet</div>');
+    let button = $('<ons-button>Contribute</ons-button>');
+    button.click(showContributing);
+    figure.append(button);
+  }
+
+  return figure;
+}
+
+function replaceFigurePlaceholder(placeholder, src, width, height) {
+  placeholder.replaceWith('<img src="' + src + '" width="' + width +'" height="' + height + '">');
+}
+
+function showMarkerOnMap() {
+  document.getElementById('loc-menu').hide();
+  showMap();
+  OnsNavigator.popPage({
+    animation : 'slide',
+    callback  : function() {
+      Cluster.zoomToShowLayer(
+        CurrentMarkerInfo.mapMarker,
+        function() {
+          Map.panTo([CurrentMarkerInfo.lat, CurrentMarkerInfo.lon]);
+          if (!CurrentMarkerInfo.popup.isOpen()) {
+            CurrentMarkerInfo.mapMarker.openPopup();
+          }
+        },
+      );
+    },
+  });
+}
+
+function showLocationInMapApp() {
+  document.getElementById('loc-menu').hide();
+  window.open('geo:' + CurrentMarkerInfo.lat + ',' + CurrentMarkerInfo.lon + '?z=20');
+}
 
 function updateStatus(qid, status) {
 
@@ -802,107 +1020,4 @@ function updateStatus(qid, status) {
   // Save status
   let serializedStatus = (DATA[qid].visited ? 'v' : 'x') + (DATA[qid].bookmarked ? 'b' : 'x');
   localStorage.setItem(qid, serializedStatus);
-}
-
-function generateMarkerDateElem(dateString) {
-  let text;
-  if (!dateString) {
-    text = 'Installation date unknown';
-  }
-  else if (dateString.length === 4) {
-    text = 'Installed in ' + dateString;
-  }
-  else {
-    let date = new Date(dateString);
-    text = 'Unveiled on ' + date.toLocaleDateString(
-      'en-US',
-      {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      },
-    );
-  }
-  return $('<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ' + text + '</div>');
-}
-
-function generateFigureElem(photoData) {
-
-  let figure = $('<figure></figure>');
-
-  if (photoData) {
-
-    let width = photoData.width >= photoData.height ? PHOTO_MAX_WIDTH : PHOTO_MAX_WIDTH / photoData.height * photoData.width;
-    let height = width / photoData.width * photoData.height;
-    let url = THUMBNAIL_URL_TEMPLATE.replace('{hash}', photoData.hash.substr(0, 1) + '/' + photoData.hash.substr(0, 2));
-    url = url.replace('{width}', Math.floor(width) * 2);
-    url = url.replace(/\{filename\}/g, photoData.file.replace(/ /g, '_'));
-
-    let placeholder = $('<div class="placeholder"></div>');
-    placeholder.width(width);
-    placeholder.height(height);
-    figure.append(placeholder);
-    figure.append('<figcaption>' + photoData.credit + '</figcaption>');
-
-    if (ImgCacheIsAvailable) {
-      // TODO: Implement cache validation
-      ImgCache.isCached(
-        url,
-        function(path, success) {
-          if (success) {
-            ImgCache.getCachedFileURL(
-              url,
-              function(url, path) {
-                replaceFigurePlaceholder(placeholder, path, width, height)
-              },
-              function() {
-                replaceFigurePlaceholder(placeholder, url, width, height)
-              },
-            );
-          }
-          else {
-            ImgCache.cacheFile(
-              url,
-              function () {
-                ImgCache.getCachedFileURL(
-                  url,
-                  function(url, path) {
-                    replaceFigurePlaceholder(placeholder, path, width, height)
-                  },
-                  function() {
-                    replaceFigurePlaceholder(placeholder, url, width, height)
-                  },
-                );
-              },
-              function() {
-                replaceFigurePlaceholder(placeholder, url, width, height)
-              },
-            );
-          }
-        },
-      );
-    }
-    else {
-      replaceFigurePlaceholder(placeholder, url, width, height)
-    }
-  }
-
-  // No actual photo
-  else {
-    figure.addClass('nodata');
-    let height = Math.floor(CARD_WIDTH / 2) - 16;
-    figure.height(height);
-    figure.css('line-height', height + 'px');
-    figure.append('No photo available yet');
-  }
-
-  return figure;
-}
-
-function replaceFigurePlaceholder(placeholder, src, width, height) {
-  placeholder.replaceWith('<img src="' + src + '" width="' + width +'" height="' + height + '">');
-}
-
-function initAbout() {
-  $('#about-logo').width(Math.floor(window.innerWidth / 3));
 }

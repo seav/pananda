@@ -35,11 +35,20 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       <div class="right">
         <ons-toolbar-button id="view-mode-button" icon="md-view-list"></ons-toolbar-button>
         <ons-toolbar-button icon="md-filter-list"></ons-toolbar-button>
-        <ons-toolbar-button icon="md-info-outline"></ons-toolbar-button>
+        <ons-toolbar-button icon="md-more-vert"></ons-toolbar-button>
       </div>
     </ons-toolbar>
     <div id="map"></div>
-    <ons-list id="marker-list"></ons-list>
+    <div id="main-list">
+      <ons-search-input></ons-search-input>
+      <div id="search-results-msg"></div>
+      <ons-list></ons-list>
+      <div id="missing-info-notice">
+        <p>Cannot find what you are looking for? Check your spelling, try using different keywords, or set your filter settings as needed.</p>
+        <p>If you know of a historical marker missing from this app, why not help contribute?</p>
+        <ons-button modifier="large">Contribute</ons-button>
+      </div>
+    </div>
     <svg id="init-progress" width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
       <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(68,102,136,0.2)" stroke-width="12" />
       <circle id="init-progress-bar" cx="60" cy="60" r="54" fill="none" stroke="#468" stroke-width="12" stroke-dasharray="339.292" stroke-dashoffset="339.292" />
@@ -48,40 +57,47 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
   </ons-page>
 </template>
 
-<template id="filter-dialog.html">
-  <ons-dialog id="filter-dialog" cancelable>
-    <h1>Filter</h1>
-    <table>
-      <tr>
-        <td></td>
-        <th>Any</th>
-        <th>Yes</th>
-        <th>No</th>
-      </tr>
-      <tr>
-        <td>Visited</td>
-        <td><ons-radio name="visited-option" value="any"></ons-radio></td>
-        <td><ons-radio name="visited-option" value="yes"></ons-radio></td>
-        <td><ons-radio name="visited-option" value="no"></ons-radio></td>
-      </tr>
-      <tr>
-        <td>Bookmarked</td>
-        <td><ons-radio name="bookmarked-option" value="any"></ons-radio></td>
-        <td><ons-radio name="bookmarked-option" value="yes"></ons-radio></td>
-        <td><ons-radio name="bookmarked-option" value="no"></ons-radio></td>
-      </tr>
-      <tr class="new-section">
-        <td>Region</td>
-        <td colspan="3" id="region-filter-wrapper"></td>
-      </tr>
-      <tr class="new-section">
-        <td>Distance</td>
-        <td colspan="3" id="distance-filter-wrapper"></td>
-      </tr>
-    </table>
-    <ons-button onclick="closeFilterDialog()">Apply</ons-button>
-  </ons-dialog>
-</template>
+<ons-dialog id="filter-dialog" cancelable>
+  <h1>Filter historical markers</h1>
+  <table>
+    <tr>
+      <td></td>
+      <th>Any</th>
+      <th>Yes</th>
+      <th>No</th>
+    </tr>
+    <tr>
+      <td>Visited</td>
+      <td><ons-radio name="visited-option" value="any"></ons-radio></td>
+      <td><ons-radio name="visited-option" value="yes"></ons-radio></td>
+      <td><ons-radio name="visited-option" value="no"></ons-radio></td>
+    </tr>
+    <tr>
+      <td>Bookmarked</td>
+      <td><ons-radio name="bookmarked-option" value="any"></ons-radio></td>
+      <td><ons-radio name="bookmarked-option" value="yes"></ons-radio></td>
+      <td><ons-radio name="bookmarked-option" value="no"></ons-radio></td>
+    </tr>
+    <tr class="new-section">
+      <td>Region</td>
+      <td colspan="3" id="region-filter-wrapper"></td>
+    </tr>
+    <tr class="new-section">
+      <td>Distance</td>
+      <td colspan="3" id="distance-filter-wrapper"></td>
+    </tr>
+  </table>
+  <ons-button onclick="closeFilterDialog()">Apply</ons-button>
+</ons-dialog>
+
+<ons-popover id="main-menu" cancelable cover-target direction="down">
+  <ons-list>
+    <ons-list-item modifier="nodivider"   id="menu-contributing" onclick="showContributing()" >Contributing</ons-list-item>
+    <ons-list-item modifier="longdivider" id="menu-resources"    onclick="showResources()"    >Other resources</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-privacy"      onclick="showPrivacyPolicy()">Privacy policy</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-about"        onclick="showAbout()"        >About</ons-list-item>
+  </ons-list>
+</ons-popover>
 
 <template id="details.html">
   <ons-page id="details">
@@ -100,8 +116,91 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
   </ons-page>
 </template>
 
+<ons-popover id="loc-menu" cancelable cover-target direction="left down up">
+  <ons-list>
+    <ons-list-item modifier="nodivider" id="menu-mainmap" onclick="showMarkerOnMap()"     >View location on main map</ons-list-item>
+    <ons-list-item modifier="nodivider" id="menu-extmap"  onclick="showLocationInMapApp()">View location in external map app</ons-list-item>
+  </ons-list>
+</ons-popover>
+
+<template id="contributing.html">
+  <ons-page id="contributing" class="misc-page">
+    <ons-toolbar>
+      <div class="left">
+        <ons-back-button icon="md-arrow-left"></ons-back-button>
+        <span>Contributing</span>
+      </div>
+    </ons-toolbar>
+    <p class="blurb">Help us improve the information shown in <strong>Panandâ</strong>! You can either send information on missing historical markers, suggest corrections, or contribute missing photos.</p>
+    <h2>Historical marker information</h1>
+    <p>If you know of a missing historical marker or if you spot any incorrect information, you can send us a message on the <a target="_system" href="https://www.facebook.com/pananda.mobile/">Panandâ Facebook page</a>. What we are most especially interested in are exact location and coordinates of historical markers.</p>
+    <p>Please note that this app is currently focused on historical markers created by the National Historical Commission of the Philippines and its predecessor agencies such as the National Historical Institute and the Philippines Historical Committee.</p>
+    <h2>Photographs</h1>
+    <p>Panandâ shows photographs from Wikimedia Commons, which is a sister project of Wikipedia. If you want to contribute photographs of historical markers, please check out the Wikimedia Commons <a target="_system" href="https://commons.wikimedia.org/wiki/Commons:First_steps">first steps tutorial</a> to learn how!</p>
+    <p>Once you have uploaded photos, please do send us a message on the <a target="_system" href="https://www.facebook.com/pananda.mobile/">Panandâ Facebook page</a> to let us know so that we could potentially include your photo in the next update of the app.</p>
+    <p>Optionally, you can also install the <a target="_system" href="https://play.google.com/store/apps/details?id=fr.free.nrw.commons">Wikimedia Commons app for Android</a> to upload photos to Wikimedia Commons straight from your mobile phone or tablet.</p>
+    <footer class="end-of-page">❖</footer>
+  </ons-page>
+</template>
+
+<template id="resources.html">
+  <ons-page id="resources">
+    <ons-toolbar>
+      <div class="left">
+        <ons-back-button icon="md-arrow-left"></ons-back-button>
+        <span>Other resources</span>
+      </div>
+    </ons-toolbar>
+    <p class="blurb">Listed below are other online resources that also compile and provide data on historical markers of the Philippines.</p>
+    <ons-card>
+      <header>
+        <h2><a target="_system" href="http://ncca.gov.ph/philippine-registry-cultural-property-precup/">Philippine Registry of Cultural Property</a></h2>
+        <h3>National Commission for Culture and the Arts</h3>
+      </header>
+      <p>The Philippine Registry of Cultural Property (PRECUP) is the repository of all information pertaining to cultural properties in the Philippines deemed significant to the country’s cultural heritage.</p>
+      <p>The PRECUP was established through Article V Section 4 of the National Heritage Act of 2009 (Republic Act No. 10066) and is maintained by the National Commission for Culture and the Arts with the help of the National Historical Commission of the Philippines, the National Museum, the National Library, the National Archives, and local government units.</p>
+    </ons-card>
+    <ons-card>
+      <header>
+        <h2><a target="_system" href="https://wmph.github.io/eph-historical-markers-map/">Historical Markers Map</a></h2>
+        <h3 class="resource-subtitle">Encyclopedia of Philippine Heritage</h3>
+      </header>
+      <p>The Historical Markers Map is a sister project of Panandâ and is similar to an online web version of Panandâ but without the filtering, visited, and bookmark features. While the data in Panandâ is only updated when the app is updated, the Historical Markers Map is always updated based on the data stored in Wikidata.</p>
+      <p>The Historical Markers Map is a project of the Wiki Society of the Philippines and is part of its Encyclopedia of Philippine Heritage program, which aims to use the Wikimedia projects as a platform for researching, documenting, and collecting information and knowledge about Philippine heritage, and then providing them to the public.</p>
+    </ons-card>
+    <ons-card>
+      <header>
+        <h2><a target="_system" href="https://www.facebook.com/groups/280667692302660/">Philippine Historical Markers</a></h2>
+        <h3 class="resource-subtitle">Facebook group</h3>
+      </header>
+      <p>The Philippine Historical Markers is an informal group of Facebook users who share photos and information on all kinds of historical markers in the Philippines or that are about the country and its people.</p>
+    </ons-card>
+  </ons-page>
+</template>
+
+<template id="privacy-policy.html">
+  <ons-page id="privacy-policy" class="misc-page">
+    <ons-toolbar>
+      <div class="left">
+        <ons-back-button icon="md-arrow-left"></ons-back-button>
+        <span>Privacy policy</span>
+      </div>
+    </ons-toolbar>
+    <p class="blurb"><strong>Panandâ</strong> cares about your privacy and will only use data on an as-needed basis. Please refer to the following sections for details on what data about you or your device may be obtained, how it is used, and when and where it is stored or discarded.</p>
+    <h2>Visited and bookmarked status</h1>
+    <p>The record of which historical markers are marked as visited or bookmarked is only stored within the app and is never provided to any other device or server. This also means that if the app is uninstalled, this data will be lost. Currently, this data also cannot be transferred or copied if you install the app on another device.</p>
+    <h2>GPS location data</h1>
+    <p>The GPS location data, when you enable the GPS function, is used for the distance filter so that the you can view markers that are located near you. This location data is only used within the app and is never stored nor provided to any other device or server and is discarded when the app is closed.</p>
+    <h2>Internet access</h1>
+    <p>The app accesses external resources from the Internet. Specifically, these are the map tiles from CARTO that are used as the base map for the map view, and photos of historical markers and their locations from Wikimedia Commons. Like almost all web service providers, CARTO and the Wikimedia Foundation may record these accesses in the form of IP addresses, timestamps, and device data. Please refer to the <a target="_system" href="https://carto.com/privacy/">CARTO privacy notice</a> and the <a target="_system" href="https://wikimediafoundation.org/wiki/Privacy_policy">Wikimedia Foundation privacy policy</a> for detailed information.</p>
+    <h2>SD card access</h1>
+    <p>The app accesses the SD card in order to cache photos of historical markers and their locations. This helps to minimize network data usage. The app currently caps the cache to a maximum of 10 megabytes.</p>
+    <footer class="end-of-page">❖</footer>
+  </ons-page>
+</template>
+
 <template id="about.html">
-  <ons-page id="about">
+  <ons-page id="about" class="misc-page">
     <ons-toolbar>
       <div class="left">
         <ons-back-button icon="md-arrow-left"></ons-back-button>
@@ -110,6 +209,10 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
     </ons-toolbar>
     <img id="about-logo" src="img/logo.svg">
     <p class="blurb"><strong>Panandâ</strong> lets you explore the historical markers of the National Historical Commission of the Philippines and its predecessor agencies. The data is updated regularly from Wikidata and Wikimedia Commons, which are sister projects of Wikipedia.</p>
+    <p class="socmed-links">
+      <a target="_system" href="https://pananda.sector4f.com/"><img src="img/globe-icon.svg"></a>
+      <a target="_system" href="https://www.facebook.com/pananda.mobile/"><img src="img/facebook-icon.svg"></a>
+    </p>
     <dl id="credits">
       <dt>Design + code</dt>
       <dd>Eugene Alvin Villar</dd>
@@ -126,12 +229,7 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       <dt>Published by</dt>
       <dd>Sector4F</dd>
     </dl>
-    <h2>Privacy policy</h2>
-    <p>The location data, when enabled by the user, is only used within the app and is never stored nor provided to any other device or server.</p>
-    <p>The record of which historical markers are visited or bookmarked is only stored within the app and is never provided to any other device or server. This also means that if the app is uninstalled, this data will be lost. This data also cannot currently be transferred or copied if you install the app on another device.</p>
-    <p>The app accesses the SD card in order to cache photos. This helps to minimize network data usage.</p>
-    <p>The app accesses external resources such as map tiles from CARTO and photos from Wikimedia Commons. CARTO and the Wikimedia Foundation may record these accesses in the form of IP addresses, timestamps, and mobile device OS data. No other personally identifiable information can be accessed by them.</p>
-    <footer>v1.0.0 © 2018, Sector4F</footer>
+    <footer>v1.1.0</footer>
     <script>ons.getScriptPage().onInit = initAbout</script>
   </ons-page>
 </template>
