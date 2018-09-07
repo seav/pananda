@@ -801,11 +801,15 @@ function initMarkerDetails() {
 
     // Add photo for monolingual plaque
     if (plaqueIsMonolingual) {
-      let figure = generateFigureElem(l10nData[code].photo);
-      figure.addClass('marker-figure');
-      figure.addClass(code);
-      if (index === 0) figure.addClass('active');
-      card.append(figure);
+      // Convert to array to support Tanay triptych marker
+      if (!Array.isArray(l10nData[code].photo)) l10nData[code].photo = [l10nData[code].photo];
+      l10nData[code].photo.forEach(function(photoData) {
+        let figure = generateFigureElem(photoData);
+        figure.addClass('marker-figure');
+        figure.addClass(code);
+        if (index === 0) figure.addClass('active');
+        card.append(figure);
+      });
     }
 
     // Process text
