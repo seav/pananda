@@ -59,7 +59,7 @@ function initApp() {
   document.addEventListener('deviceready', initCordova.bind(this), false);
 
   // Further initialize in-memory DB
-  Object.keys(DATA).forEach(function(qid) {
+  Object.keys(DATA).forEach(qid => {
     let info = DATA[qid];
     info.qid = qid;
     let status = localStorage.getItem(qid);
@@ -72,7 +72,7 @@ function initApp() {
       info.bookmarked = false;
     }
     if (typeof info.region === 'object') {
-      info.region.forEach(function(value) {
+      info.region.forEach(value => {
         Regions[value] = true;
       });
     }
@@ -101,7 +101,7 @@ function initCordova() {
   else {
     ImgCache.options.cordovaFilesystemRoot = cordova.file.dataDirectory;
   }
-  ImgCache.init(function() { ImgCacheIsAvailable = true });
+  ImgCache.init(() => { ImgCacheIsAvailable = true });
 }
 
 function initMain() {
@@ -114,20 +114,17 @@ function initMain() {
   generateMapMarkers();
   initList();
   initFilterDialog();
-  $('#explore').on(
-    'initfinished',
-    function() {
-      $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
-      $('#init-progress').fadeOut();
-      if (DistanceFilterValue) {
-        applyFilters(true);
-        geolocateUser();
-      }
-      else {
-        applyFilters();
-      }
-    },
-  );
+  $('#explore').on('initfinished', () => {
+    $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
+    $('#init-progress').fadeOut();
+    if (DistanceFilterValue) {
+      applyFilters(true);
+      geolocateUser();
+    }
+    else {
+      applyFilters();
+    }
+  });
 };
 
 function initMap() {
@@ -165,7 +162,7 @@ function generateMapMarkers() {
 
   // Initialize the map marker cluster
   Cluster = new L.markerClusterGroup({
-    maxClusterRadius: function(z) {
+    maxClusterRadius: z => {
       if (z <=  15) return 50;
       if (z === 16) return 40;
       if (z === 17) return 30;
@@ -226,7 +223,7 @@ function generateMapMarkers() {
   processChunk(0);
 
   // Event delegation
-  $('#map').click(function(e) {
+  $('#map').click(e => {
     let clickedElem = e.target;
     if (clickedElem.tagName === 'SPAN' && ('action' in clickedElem.dataset)) {
       e.stopPropagation();
@@ -246,13 +243,10 @@ function initList() {
   $('#main-list').height(bg.height());
 
   let searchInputTimeoutId;
-  $('#main-list ons-search-input input').on(
-    'input',
-    function() {
-      clearTimeout(searchInputTimeoutId);
-      searchInputTimeoutId = setTimeout(applySearch, SEARCH_DELAY);
-    },
-  );
+  $('#main-list ons-search-input input').on('input', () => {
+    clearTimeout(searchInputTimeoutId);
+    searchInputTimeoutId = setTimeout(applySearch, SEARCH_DELAY);
+  });
   $('#missing-info-notice ons-button').click(showContributing);
 
   let qids = Object.keys(DATA);
@@ -305,7 +299,7 @@ function initList() {
   processChunk(0);
 
   // Event delegation
-  list.click(function(e) {
+  list.click(e => {
     let clickedElem = e.target;
     if (clickedElem.tagName === 'SPAN' && ('action' in clickedElem.dataset)) {
       updateStatus(clickedElem.dataset.qid, clickedElem.dataset.action);
@@ -323,18 +317,18 @@ function initFilterDialog() {
 
   select = $('<ons-select id="region-filter"></ons-select>');
   select.append('<option val="0">any region</option>');
-  Object.keys(Regions).sort(function(a, b) {
+  Object.keys(Regions).sort((a, b) => {
     if (a < b) return -1;
     if (a > b) return  1;
     return 0;
-  }).forEach(function(value) {
+  }).forEach(value => {
     select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
   });
   $('#region-filter-wrapper').append(select);
 
   select = $('<ons-select id="distance-filter"></ons-select>');
   select.append('<option val="0">any distance</option>');
-  DISTANCE_FILTERS.forEach(function(value) {
+  DISTANCE_FILTERS.forEach(value => {
     select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>within ' + value + ' km</option>');
   });
   $('#distance-filter-wrapper').append(select);
@@ -382,7 +376,7 @@ function geolocateUser() {
       function(position) {
         stopGeolocatingUi();
         // Invalidate all distances
-        Object.keys(DATA).forEach(function(qid) {
+        Object.keys(DATA).forEach(qid => {
           DATA[qid].distance = null;
         });
         CurrentPosition = {
@@ -444,7 +438,7 @@ function geolocateUser() {
           if (!GpsOffToastIsShown) {
             GpsOffToastIsShown = true;
             let promise = ons.notification.toast('You need to turn GPS on first', { timeout: 2000 });
-            promise.then(function() { GpsOffToastIsShown = false });
+            promise.then(() => { GpsOffToastIsShown = false });
           }
         }
       },
@@ -469,7 +463,7 @@ function applySearch() {
   // Perform search filtering
   let numPotentialResults = 0;
   let numActualResults    = 0;
-  Object.values(DATA).forEach(function(info) {
+  Object.values(DATA).forEach(info => {
     if (!info.filtered) return;
     numPotentialResults++;
     if (regex.test(info.name + ' ' + info.macroAddress)) {
@@ -509,7 +503,7 @@ function showFilterDialog() {
   let setRadioButtons = function() {
     let vRadios = $('ons-radio[name="visited-option"]');
     let bRadios = $('ons-radio[name="bookmarked-option"]');
-    [0, 1, 2].forEach(function(i) {
+    [0, 1, 2].forEach(i => {
       if (VisitedFilterValue    === vRadios[i].value) vRadios[i].checked = true;
       if (BookmarkedFilterValue === bRadios[i].value) bRadios[i].checked = true;
     });
@@ -530,7 +524,7 @@ function closeFilterDialog() {
   // Update filter values
   let vRadios = $('ons-radio[name="visited-option"]');
   let bRadios = $('ons-radio[name="bookmarked-option"]');
-  [0, 1, 2].forEach(function(i) {
+  [0, 1, 2].forEach(i => {
     if (vRadios[i].checked) VisitedFilterValue    = vRadios[i].value;
     if (bRadios[i].checked) BookmarkedFilterValue = bRadios[i].value;
   });
@@ -570,13 +564,15 @@ function closeFilterDialog() {
   $('#filter-dialog')[0].hide();
 }
 
+// TODO: Improve performance of the marker details back button
+// by not running everything if there is no change in status
 function applyFilters(suppressToast) {
 
   // Determine which markers are visible and show/hide map markers
   // and main list items accordingly
   let visibleQids = [];
   let visibleMapMarkers = [];
-  Object.keys(DATA).forEach(function(qid) {
+  Object.keys(DATA).forEach(qid => {
     let info = DATA[qid];
     if (
       (
@@ -620,19 +616,17 @@ function applyFilters(suppressToast) {
   let list = document.querySelector('#main-list ons-list');
   if (DistanceFilterValue && CurrentPosition) {
     list.classList.remove('sorted-alphabetically');
-    visibleQids.sort(function(a, b) {
-      return DATA[a].distance - DATA[b].distance;
-    });
+    visibleQids.sort((a, b) => DATA[a].distance - DATA[b].distance);
   }
   else {
     list.classList.add('sorted-alphabetically');
-    visibleQids.sort(function(a, b) {
+    visibleQids.sort((a, b) => {
       if (DATA[a].name < DATA[b].name) return -1;
       if (DATA[a].name > DATA[b].name) return  1;
       return 0;
     });
   }
-  visibleQids.forEach(function(qid) {
+  visibleQids.forEach(qid => {
     list.removeChild(DATA[qid].mainListItem);
     list.appendChild(DATA[qid].mainListItem);
   });
@@ -714,7 +708,7 @@ function initMarkerDetails() {
 
   // Filters are applied when going back because the user
   // may have updated the visited/bookmarked status
-  $('ons-back-button').click(function() { applyFilters(true) });
+  $('ons-back-button').click(() => { applyFilters(true) });
 
   // Activate status buttons
   // ------------------------------------------------------
@@ -727,10 +721,10 @@ function initMarkerDetails() {
   let visitedButton       = $('ons-toolbar-button[icon="md-eye"             ]');
   let notBookmarkedButton = $('ons-toolbar-button[icon="md-bookmark-outline"]');
   let bookmarkedButton    = $('ons-toolbar-button[icon="md-bookmark"        ]');
-  notVisitedButton   .click(function() { updateStatus(info.qid, 'visited'     ) });
-  visitedButton      .click(function() { updateStatus(info.qid, 'unvisited'   ) });
-  notBookmarkedButton.click(function() { updateStatus(info.qid, 'bookmarked'  ) });
-  bookmarkedButton   .click(function() { updateStatus(info.qid, 'unbookmarked') });
+  notVisitedButton   .click(() => { updateStatus(info.qid, 'visited'     ) });
+  visitedButton      .click(() => { updateStatus(info.qid, 'unvisited'   ) });
+  notBookmarkedButton.click(() => { updateStatus(info.qid, 'bookmarked'  ) });
+  bookmarkedButton   .click(() => { updateStatus(info.qid, 'unbookmarked') });
 
   // Prepare header
   // ------------------------------------------------------
@@ -768,7 +762,7 @@ function initMarkerDetails() {
   let segment = $('<div class="segment segment--material"></div>');
   if (langCodes.length === 1) segment.addClass('single');
   card.append(segment);
-  langCodes.forEach(function(code, index) {
+  langCodes.forEach((code, index) => {
 
     // Add language to segment
     let segmentItem = $(
@@ -779,7 +773,7 @@ function initMarkerDetails() {
       LANGUAGE_NAME[code] +
       '</div>'
     );
-    segmentItem.click(function() {
+    segmentItem.click(() => {
       $('.marker-text.' + code).addClass('active');
       $('.marker-text:not(.' + code + ')').removeClass('active');
       if (info.date === true) {
@@ -803,7 +797,7 @@ function initMarkerDetails() {
     if (plaqueIsMonolingual) {
       // Convert to array to support Tanay triptych marker
       if (!Array.isArray(l10nData[code].photo)) l10nData[code].photo = [l10nData[code].photo];
-      l10nData[code].photo.forEach(function(photoData) {
+      l10nData[code].photo.forEach(photoData => {
         let figure = generateFigureElem(photoData);
         figure.addClass('marker-figure');
         figure.addClass(code);
@@ -831,7 +825,7 @@ function initMarkerDetails() {
   // Add Wikipedia links
   if (info.wikipedia) {
     let linksDiv = $('<div class="wikipedia-links"><h3>Learn more on Wikipedia</h3></div>');
-    Object.keys(info.wikipedia).forEach(function(title) {
+    Object.keys(info.wikipedia).forEach(title => {
       let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
       let linkP = $('<p><a target="_system" href="https://en.wikipedia.org/wiki/' + escape(urlPath) + '">' + title + '</a></p>');
       linksDiv.append(linkP);
@@ -846,10 +840,7 @@ function initMarkerDetails() {
   top.append(card);
 
   let button = $('<ons-button><ons-icon icon="md-more-vert"></ons-icon></ons-button>');
-  button.click(function(evt) {
-    let menu = document.getElementById('loc-menu');
-    menu.show(evt);
-  });
+  button.click((e) => { document.getElementById('loc-menu').show(e) });
   card.append(button);
 
   if (info.address ) card.append('<p><strong>Address:</strong> ' + info.address);
@@ -963,7 +954,7 @@ function showMarkerOnMap() {
   showMap();
   OnsNavigator.popPage({
     animation : 'slide',
-    callback  : function() {
+    callback  : () => {
       Cluster.zoomToShowLayer(
         CurrentMarkerInfo.mapMarker,
         function() {
