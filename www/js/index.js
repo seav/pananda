@@ -105,7 +105,7 @@ function initCordova() {
 }
 
 function initMain() {
-  OnsNavigator = $('#navigator')[0];
+  OnsNavigator = document.getElementById('navigator');
   $('#view-mode-button').click(toggleView);
   $('ons-toolbar-button[icon="md-filter-list"]').click(showFilterDialog);
   $('ons-toolbar-button[icon="md-more-vert"  ]').click(showMainMenu    );
@@ -174,7 +174,7 @@ function generateMapMarkers() {
 
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
-  let progressElem = $('#init-progress-bar')[0];
+  let progressElem = document.getElementById('init-progress-bar');
 
   let processChunk = function(startIdx) {
 
@@ -252,7 +252,7 @@ function initList() {
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
   let listItems = [];
-  let progressElem = $('#init-progress-bar')[0];
+  let progressElem = document.getElementById('init-progress-bar');
   let list = $('#main-list ons-list');
 
   let processChunk = function(startIdx) {
@@ -362,7 +362,7 @@ function showList() {
 function geolocateUser() {
 
   if (IsGeolocating) return;
-  let gpsButton = $('#gps-button ons-icon')[0];
+  let gpsButton = document.querySelector('#gps-button ons-icon');
 
   let stopGeolocatingUi = function() {
     IsGeolocating = false;
@@ -453,7 +453,7 @@ function geolocateUser() {
 function applySearch() {
 
   // Prepare query
-  let query = $('#main-list ons-search-input input')[0].value;
+  let query = document.querySelector('#main-list ons-search-input input').value;
   query = query.replace(/^\s+|\s+$/g, '');  // Remove trailing spaces
   query = query.replace(/[[\]{}()*+!<=:?\/\\^$|#,@]/g, '');  // Remove some punctuation
   query = query.replace(/\./g, '\\$&');  // Escape periods
@@ -493,7 +493,7 @@ function applySearch() {
     }
   }
   else {
-    $('#search-results-msg').hide();
+    $('#search-results-msg' ).hide();
     $('#missing-info-notice').hide();
   }
 }
@@ -501,7 +501,7 @@ function applySearch() {
 function showFilterDialog() {
 
   let setRadioButtons = function() {
-    let vRadios = $('ons-radio[name="visited-option"]');
+    let vRadios = $('ons-radio[name="visited-option"   ]');
     let bRadios = $('ons-radio[name="bookmarked-option"]');
     [0, 1, 2].forEach(i => {
       if (VisitedFilterValue    === vRadios[i].value) vRadios[i].checked = true;
@@ -509,8 +509,7 @@ function showFilterDialog() {
     });
   };
 
-  let dialog = document.getElementById('filter-dialog');
-  dialog.show();
+  document.getElementById('filter-dialog').show();
   setRadioButtons();
 }
 
@@ -522,15 +521,15 @@ function closeFilterDialog() {
   let prevDistance   = DistanceFilterValue;
 
   // Update filter values
-  let vRadios = $('ons-radio[name="visited-option"]');
+  let vRadios = $('ons-radio[name="visited-option"   ]');
   let bRadios = $('ons-radio[name="bookmarked-option"]');
   [0, 1, 2].forEach(i => {
     if (vRadios[i].checked) VisitedFilterValue    = vRadios[i].value;
     if (bRadios[i].checked) BookmarkedFilterValue = bRadios[i].value;
   });
-  let onsSelect = $('#region-filter')[0];
+  let onsSelect = document.getElementById('region-filter');
   RegionFilterValue = onsSelect.selectedIndex === 0 ? null : onsSelect.value;
-  let index = $('#distance-filter')[0].selectedIndex;
+  let index = document.getElementById('distance-filter').selectedIndex;
   DistanceFilterValue = index === 0 ? null : DISTANCE_FILTERS[index - 1];
   if (!CurrentPosition && index > 0) geolocateUser();
 
@@ -557,11 +556,11 @@ function closeFilterDialog() {
     prevRegion     !== RegionFilterValue     ||
     prevDistance   !== DistanceFilterValue
   ) {
-    $('#main-list ons-search-input input')[0].value = '';
+    document.querySelector('#main-list ons-search-input input').value = '';
     applyFilters();
   }
 
-  $('#filter-dialog')[0].hide();
+  document.getElementById('filter-dialog').hide();
 }
 
 // TODO: Improve performance of the marker details back button
@@ -682,9 +681,8 @@ function computeDistanceToMarker(info) {
 }
 
 function showMainMenu() {
-  let button = $('ons-toolbar-button[icon="md-more-vert"  ]')[0];
-  let menu = document.getElementById('main-menu');
-  menu.show(button);
+  let button = document.querySelector('ons-toolbar-button[icon="md-more-vert"]');
+  document.getElementById('main-menu').show(button);
 }
 
 function showMiscPage(templateId) {
