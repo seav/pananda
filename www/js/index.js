@@ -109,8 +109,8 @@ function initCordova() {
 function initMain() {
   OnsNavigator = document.getElementById('navigator');
   $('#view-mode-button').click(toggleView);
-  $('ons-toolbar-button[icon="md-filter-list"]').click(showFilterDialog);
-  $('ons-toolbar-button[icon="md-more-vert"  ]').click(showMainMenu    );
+  $('ons-toolbar-button[icon="md-tune"     ]').click(showFilterDialog);
+  $('ons-toolbar-button[icon="md-more-vert"]').click(showMainMenu    );
   initMap();
   if ('splashscreen' in navigator) navigator.splashscreen.hide();
   generateMapMarkers();
