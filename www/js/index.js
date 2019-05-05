@@ -32,6 +32,9 @@ const SEARCH_DELAY           = 500;  // milliseconds
 var OnsNavigator;
 var Map;
 var Cluster;
+var MapPopup;
+var MapPopupContent;
+var MapPopupMarker;
 var GpsMarker;
 
 // Global static flags
@@ -174,12 +177,24 @@ function generateMapMarkers() {
     showCoverageOnHover: false,
   }).addTo(Map);
 
+  // Initialize the reusable map popup
+  MapPopupContent = $(
+    '<div class="popup-wrapper">' +
+      '<div class="popup-title"></div>' +
+      '<span data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
+      '<span data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
+      '<span data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
+      '<span data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+      '<ons-button modifier="quiet">Details</ons-button>' +
+    '</div>'
+  )[0];
+  MapPopup = L.popup({ closeButton: false }).setContent(MapPopupContent);
+
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
   let progressElem = document.getElementById('init-progress-bar');
 
   let processMapChunk = function(startIdx) {
-
     let idx = startIdx;
     for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
       let qid = qids[idx];
@@ -195,29 +210,11 @@ function generateMapMarkers() {
             shadowUrl    : 'img/map-marker-shadow.svg',
             shadowSize   : [40, 30],
             shadowAnchor : [6, 23],
+            className    : qid,
           }),
         },
       );
       info.mapMarker = mapMarker;
-
-      let popupContent = $(
-        '<div class="popup-wrapper' +
-          (info.visited    ? ' visited'    : '') +
-          (info.bookmarked ? ' bookmarked' : '') +
-        '">' +
-          '<div class="popup-title">' + info.name + '</div>' +
-          '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
-          '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
-          '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
-          '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
-          '<ons-button data-qid="' + qid + '" modifier="quiet">Details</ons-button>' +
-        '</div>'
-      );
-      mapMarker.bindPopup(popupContent[0], { closeButton: false });
-
-      let popup = mapMarker.getPopup();
-      info.popup = popup;
-
       NumMarkersInitialized++;
     }
 
@@ -232,18 +229,46 @@ function generateMapMarkers() {
   };
   processMapChunk(0);
 
-  // Event delegation
+  // Event handling using event delegation
   $('#map').click(e => {
     let clickedElem = e.target;
     if (clickedElem.tagName === 'SPAN' && ('action' in clickedElem.dataset)) {
       e.stopPropagation();
-      updateStatus(clickedElem.dataset.qid, clickedElem.dataset.action);
+      updateStatus(clickedElem.parentNode.dataset.qid, clickedElem.dataset.action);
     }
     else if (clickedElem.tagName === 'ONS-BUTTON') {
       e.stopPropagation();
-      OnsNavigator.pushPage('details.html', { data: { info: DATA[clickedElem.dataset.qid] } });
+      OnsNavigator.pushPage('details.html', { data: { info: DATA[clickedElem.parentNode.dataset.qid] } });
+    }
+    else if (clickedElem.tagName === 'IMG' && clickedElem.classList.contains('leaflet-marker-icon')) {
+      e.stopPropagation();
+      clickedElem.classList.forEach(val => {
+        if (!val.match(/^Q[0-9]+$/)) return;
+        let info = DATA[val];
+        updatePopup(info);
+        info.mapMarker.bindPopup(MapPopup).openPopup();
+        MapPopupMarker = info.mapMarker;
+      });
     }
   });
+}
+
+function updatePopup(info) {
+  MapPopupContent.dataset.qid = info.qid;
+  if (info.visited) {
+    MapPopupContent.classList.add('visited');
+  }
+  else {
+    MapPopupContent.classList.remove('visited');
+  }
+  if (info.bookmarked) {
+    MapPopupContent.classList.add('bookmarked');
+  }
+  else {
+    MapPopupContent.classList.remove('bookmarked');
+  }
+  MapPopupContent.querySelector('.popup-title').innerHTML = info.name;
+  MapPopupContent.querySelector('ons-button').dataset.qid = info.qid;
 }
 
 function initList() {
@@ -977,16 +1002,17 @@ function replaceFigurePlaceholder(placeholder, src, width, height) {
 function showMarkerOnMap() {
   document.getElementById('loc-menu').hide();
   showMap();
+  if (MapPopupMarker) MapPopupMarker.closePopup();
+  updatePopup(CurrentMarkerInfo);
   OnsNavigator.popPage({
     animation : 'slide',
     callback  : () => {
       Cluster.zoomToShowLayer(
         CurrentMarkerInfo.mapMarker,
-        function() {
+        () => {
           Map.panTo([CurrentMarkerInfo.lat, CurrentMarkerInfo.lon]);
-          if (!CurrentMarkerInfo.popup.isOpen()) {
-            CurrentMarkerInfo.mapMarker.openPopup();
-          }
+          CurrentMarkerInfo.mapMarker.bindPopup(MapPopup).openPopup();
+          MapPopupMarker = CurrentMarkerInfo.mapMarker;
         },
       );
     },
@@ -1010,30 +1036,30 @@ function updateStatus(qid, status) {
   };
   if (status === 'visited') {
     info.visited = true;
-    info.mainListItem  .classList.add('visited');
-    info.popup._content.classList.add('visited');
-    if (page) page     .classList.add('visited')
+    info.mainListItem.classList.add('visited');
+    MapPopupContent  .classList.add('visited');
+    if (page) page   .classList.add('visited')
     ons.notification.toast('Marked as visited', toastOptions);
   }
   else if (status === 'unvisited') {
     info.visited = false;
-    info.mainListItem  .classList.remove('visited');
-    info.popup._content.classList.remove('visited');
-    if (page) page     .classList.remove('visited');
+    info.mainListItem.classList.remove('visited');
+    MapPopupContent  .classList.remove('visited');
+    if (page) page   .classList.remove('visited');
     ons.notification.toast('Marked as not visited', toastOptions);
   }
   else if (status === 'bookmarked') {
     info.bookmarked = true;
-    info.mainListItem  .classList.add('bookmarked');
-    info.popup._content.classList.add('bookmarked');
-    if (page) page     .classList.add('bookmarked');
+    info.mainListItem.classList.add('bookmarked');
+    MapPopupContent  .classList.add('bookmarked');
+    if (page) page   .classList.add('bookmarked');
     ons.notification.toast('Added to bookmarks', toastOptions);
   }
   else { // status === 'unbookmarked'
     info.bookmarked = false;
-    info.mainListItem  .classList.remove('bookmarked');
-    info.popup._content.classList.remove('bookmarked');
-    if (page) page     .classList.remove('bookmarked');
+    info.mainListItem.classList.remove('bookmarked');
+    MapPopupContent  .classList.remove('bookmarked');
+    if (page) page   .classList.remove('bookmarked');
     ons.notification.toast('Removed from bookmarks', toastOptions);
   }
 
