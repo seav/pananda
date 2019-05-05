@@ -25,7 +25,7 @@ const CARD_WIDTH             = Math.floor($(window).width() - 48);  // pixels
 const PHOTO_MAX_WIDTH        = CARD_WIDTH - 16;  // pixels
 const THUMBNAIL_URL_TEMPLATE = 'https://upload.wikimedia.org/wikipedia/commons/thumb/{hash}/{filename}/{width}px-{filename}';
 const PROGRESS_MAX_VAL       = 339.292;
-const CHUNK_LENGTH           = 50;   // pixels
+const CHUNK_LENGTH           = 100;  // markers processed
 const SEARCH_DELAY           = 500;  // milliseconds
 
 // Global static helper objects
@@ -178,7 +178,7 @@ function generateMapMarkers() {
   let numMarkers = qids.length;
   let progressElem = document.getElementById('init-progress-bar');
 
-  let processChunk = function(startIdx) {
+  let processMapChunk = function(startIdx) {
 
     let idx = startIdx;
     for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
@@ -216,13 +216,13 @@ function generateMapMarkers() {
     let progress = NumMarkersInitialized / numMarkers / 2;
     progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
     if (idx + 1 <= numMarkers) {
-      setTimeout(function() { processChunk(idx) }, 17);
+      setTimeout(function() { processMapChunk(idx) }, 17);
     }
     else {
       if (NumMarkersInitialized === numMarkers * 2) $('#explore').trigger('initfinished');
     }
   };
-  processChunk(0);
+  processMapChunk(0);
 
   // Event delegation
   $('#map').click(e => {
@@ -257,7 +257,7 @@ function initList() {
   let progressElem = document.getElementById('init-progress-bar');
   let list = $('#main-list ons-list');
 
-  let processChunk = function(startIdx) {
+  let processListChunk = function(startIdx) {
 
     let idx = startIdx;
     for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
@@ -291,14 +291,14 @@ function initList() {
     let progress = NumMarkersInitialized / numMarkers / 2;
     progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
     if (idx + 1 <= numMarkers) {
-      setTimeout(function() { processChunk(idx) }, 17);
+      setTimeout(function() { processListChunk(idx) }, 17);
     }
     else {
       list.append(listItems);
       if (NumMarkersInitialized === numMarkers * 2) $('#explore').trigger('initfinished');
     }
   }
-  processChunk(0);
+  processListChunk(0);
 
   // Event delegation
   list.click(e => {
