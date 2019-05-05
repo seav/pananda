@@ -44,13 +44,14 @@ var RegionFilterValue;
 var DistanceFilterValue;
 
 // Global state and status flags
-var Regions               = {};
-var ViewMode              = 'map';
+var Regions                 = {};
+var ViewMode                = 'map';
 var CurrentPosition;
-var IsGeolocating         = false;
-var GpsOffToastIsShown    = false;
-var NumMarkersInitialized = 0;
+var IsGeolocating           = false;
+var GpsOffToastIsShown      = false;
+var NumMarkersInitialized   = 0;
 var CurrentMarkerInfo;
+var StatusUpdatedMarkerQids = [];
 
 initApp();
 
@@ -72,14 +73,15 @@ function initApp() {
       info.bookmarked = false;
     }
     if (typeof info.region === 'object') {
-      info.region.forEach(value => {
-        Regions[value] = true;
-      });
+      info.region.forEach(value => { Regions[value] = true });
     }
     else {
-      Regions[DATA[qid].region] = true;
+      Regions[info.region] = true;
     }
   });
+
+  // Convert Regions hash into a sorted array
+  Regions = [...Object.keys(Regions).sort()];
 
   // Initialize preferences
   VisitedFilterValue    = localStorage.getItem('visited-filter'   ) || 'any';
@@ -91,7 +93,7 @@ function initApp() {
 
 function initCordova() {
   screen.orientation.lock('portrait');
-  if (cordova.platformId == 'android') {
+  if (cordova.platformId === 'android') {
     StatusBar.backgroundColorByHexString("#123");
   }
   ImgCache.options.skipURIencoding = true;
@@ -118,7 +120,7 @@ function initMain() {
     $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
     $('#init-progress').fadeOut();
     if (DistanceFilterValue) {
-      applyFilters(true);
+      applyFilters({ suppressToast: true });
       geolocateUser();
     }
     else {
@@ -317,11 +319,7 @@ function initFilterDialog() {
 
   select = $('<ons-select id="region-filter"></ons-select>');
   select.append('<option val="0">any region</option>');
-  Object.keys(Regions).sort((a, b) => {
-    if (a < b) return -1;
-    if (a > b) return  1;
-    return 0;
-  }).forEach(value => {
+  Regions.forEach(value => {
     select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
   });
   $('#region-filter-wrapper').append(select);
@@ -464,7 +462,7 @@ function applySearch() {
   let numPotentialResults = 0;
   let numActualResults    = 0;
   Object.values(DATA).forEach(info => {
-    if (!info.filtered) return;
+    if (!info.visible) return;
     numPotentialResults++;
     if (regex.test(info.name + ' ' + info.macroAddress)) {
       numActualResults++;
@@ -563,88 +561,111 @@ function closeFilterDialog() {
   document.getElementById('filter-dialog').hide();
 }
 
-// TODO: Improve performance of the marker details back button
-// by not running everything if there is no change in status
-function applyFilters(suppressToast) {
+// Shows or hides the map marker and main list items corresponding to each
+// historical marker depending on whether they match the current filters.
+// Options:
+// - suppressToast : set to true to disable the toast message
+function applyFilters(options = {}) {
 
-  // Determine which markers are visible and show/hide map markers
-  // and main list items accordingly
-  let visibleQids = [];
-  let visibleMapMarkers = [];
+  let visibleQids = [], visibleMapMarkers = [];
+
   Object.keys(DATA).forEach(qid => {
     let info = DATA[qid];
-    if (
-      (
-        VisitedFilterValue === 'any' ||
-        VisitedFilterValue === 'yes' &&  info.visited ||
-        VisitedFilterValue === 'no'  && !info.visited
-      )
-      &&
-      (
-        BookmarkedFilterValue === 'any' ||
-        BookmarkedFilterValue === 'yes' &&  info.bookmarked ||
-        BookmarkedFilterValue === 'no'  && !info.bookmarked
-      )
-      &&
-      (
-        RegionFilterValue === null ||
-        typeof info.region === 'object' && info.region.includes(RegionFilterValue) ||
-        info.region === RegionFilterValue
-      )
-      &&
-      (
-        DistanceFilterValue === null ||
-        !CurrentPosition ||
-        isMarkerNear(info)
-      )
-    ) {
+    if (doesMarkerMatchFilters(info)) {
       visibleQids.push(qid);
       visibleMapMarkers.push(info.mapMarker);
       $(info.mainListItem).show();
-      info.filtered = true;
+      info.visible = true;
     }
     else {
       $(info.mainListItem).hide();
-      info.filtered = false;
+      info.visible = false;
     }
   });
   Cluster.clearLayers();
   Cluster.addLayers(visibleMapMarkers);
 
-  // Sort main list either by distance or alphabetically
-  let list = document.querySelector('#main-list ons-list');
-  if (DistanceFilterValue && CurrentPosition) {
-    list.classList.remove('sorted-alphabetically');
-    visibleQids.sort((a, b) => DATA[a].distance - DATA[b].distance);
-  }
-  else {
-    list.classList.add('sorted-alphabetically');
-    visibleQids.sort((a, b) => {
-      if (DATA[a].name < DATA[b].name) return -1;
-      if (DATA[a].name > DATA[b].name) return  1;
-      return 0;
-    });
-  }
-  visibleQids.forEach(qid => {
-    list.removeChild(DATA[qid].mainListItem);
-    list.appendChild(DATA[qid].mainListItem);
-  });
+  sortMainList(visibleQids);
 
   // If the distance filter has kicked in because of a delay in getting
   // the GPS location, we need to re-apply the search
   applySearch();
 
   // Show toast message as needed
-  let numFiltered = visibleQids.length;
-  if (!suppressToast && numFiltered > 0) {
-    ons.notification.toast(
-      'Now showing ' + numFiltered + ' marker' + (numFiltered > 1 ? 's' : ''),
-      { timeout: 2000 },
-    );
+  let numVisible = visibleQids.length;
+  let msg = null;
+  if (numVisible === 0) {
+    msg = 'No markers match the filters';
   }
-  if (numFiltered === 0) {
-    ons.notification.toast('No markers match the filters', { timeout: 2000 });
+  else if (!('suppressToast' in options) || !options.suppressToast) {
+    msg = 'Now showing ' + numVisible + ' marker' + (numVisible > 1 ? 's' : '');
   }
+  if (msg) ons.notification.toast(msg, { timeout: 2000 });
+}
+
+function hideStatusUpdatedMarkers() {
+
+  let mapMarkers = [];
+  StatusUpdatedMarkerQids.forEach(qid => {
+    let info = DATA[qid];
+    if (!doesMarkerMatchFilters(info)) {
+      mapMarkers.push(info.mapMarker);
+      $(info.mainListItem).hide();
+      info.visible = false;
+    }
+  });
+  Cluster.removeLayers(mapMarkers);
+
+  StatusUpdatedMarkerQids = [];
+}
+
+// Sorts the main list either alphabetically or by distance
+// given the list of QIDs of the visible historical markers
+function sortMainList(qids) {
+  let list = document.querySelector('#main-list ons-list');
+  if (DistanceFilterValue && CurrentPosition) {
+    list.classList.remove('sorted-alphabetically');
+    qids.sort((a, b) => DATA[a].distance - DATA[b].distance);
+  }
+  else {
+    list.classList.add('sorted-alphabetically');
+    qids.sort((a, b) => {
+      if (DATA[a].name < DATA[b].name) return -1;
+      if (DATA[a].name > DATA[b].name) return  1;
+      return 0;
+    });
+  }
+  list.innerHTML = '';
+  qids.forEach(qid => { list.appendChild(DATA[qid].mainListItem) });
+}
+
+// Returns true if the specified marker (passed as record) matches the current filters
+function doesMarkerMatchFilters(info) {
+  return (
+    (
+      VisitedFilterValue === 'any' ||
+      VisitedFilterValue === 'yes' &&  info.visited ||
+      VisitedFilterValue === 'no'  && !info.visited
+    )
+    &&
+    (
+      BookmarkedFilterValue === 'any' ||
+      BookmarkedFilterValue === 'yes' &&  info.bookmarked ||
+      BookmarkedFilterValue === 'no'  && !info.bookmarked
+    )
+    &&
+    (
+      RegionFilterValue === null ||
+      typeof info.region === 'object' && info.region.includes(RegionFilterValue) ||
+      info.region === RegionFilterValue
+    )
+    &&
+    (
+      DistanceFilterValue === null ||
+      !CurrentPosition ||
+      isMarkerNear(info)
+    )
+  );
 }
 
 function isMarkerNear(info) {
@@ -704,9 +725,7 @@ function initMarkerDetails() {
   let info = this.data.info;
   CurrentMarkerInfo = info;
 
-  // Filters are applied when going back because the user
-  // may have updated the visited/bookmarked status
-  $('ons-back-button').click(() => { applyFilters(true) });
+  $('ons-back-button').click(hideStatusUpdatedMarkers);
 
   // Activate status buttons
   // ------------------------------------------------------
@@ -1013,4 +1032,6 @@ function updateStatus(qid, status) {
   // Save status
   let serializedStatus = (DATA[qid].visited ? 'v' : 'x') + (DATA[qid].bookmarked ? 'b' : 'x');
   localStorage.setItem(qid, serializedStatus);
+
+  StatusUpdatedMarkerQids.push(qid);
 }
