@@ -182,13 +182,21 @@ function generateMapMarkers() {
 
     let idx = startIdx;
     for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
-
       let qid = qids[idx];
       let info = DATA[qid];
-
       let mapMarker = L.marker(
         [info.lat, info.lon],
-        { icon: L.ExtraMarkers.icon({ icon: '', markerColor : 'cyan' }) },
+        {
+          icon: L.icon({
+            iconUrl      : 'img/map-marker.svg',
+            iconSize     : [25, 38.6905],
+            iconAnchor   : [12, 36],
+            popupAnchor  : [0, -30],
+            shadowUrl    : 'img/map-marker-shadow.svg',
+            shadowSize   : [40, 30],
+            shadowAnchor : [6, 23],
+          }),
+        },
       );
       info.mapMarker = mapMarker;
 

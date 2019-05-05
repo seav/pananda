@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg"
+  viewBox="-5 -25 40 30">
+<defs>
+  <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+    <stop stop-color="rgba(0,0,0,0.0)" offset="0%"   />
+    <stop stop-color="rgba(0,0,0,0.75)" offset="100%" />
+  </linearGradient>
+  <filter id="blur" height="200%" width="200%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1" />
+  </filter>
+</defs>
+<path stroke-width="0" fill="url(#grad)" filter="url(#blur)" d="M0,0 l10,-15 l20,0 z" />
+</svg>
