@@ -28,6 +28,11 @@ const THUMBNAIL_URL_TEMPLATE  = 'https://commons.wikimedia.org/wiki/Special:File
 const PROGRESS_MAX_VAL        = 339.292;
 const CHUNK_LENGTH            = 100;  // markers processed
 const SEARCH_DELAY            = 500;  // milliseconds
+const ALT_QID                 = 'Q67080061';
+const ALT_INSCRIPTION_HTML    =
+  '<div class="alt-inscription"><p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
+  '<p>Diktador. Naging pangulo, 1965 at 1969. Sinubukang ibagsak ng kabataan sa Unang Sigwa, 1970. Sinuspinde ang writ of habeas corpus, 1971. Ipinasa ang proclamation 1081 at nagdeklara ng Batas Militar, 1972. Nagpataw ng Bagong Saligang Batas, 1973. Isinabatas ang “Bagong Lipunan”, 1982. Tumakbo at nanalo sa huwad na halalan, 1981. Natalo sa snap elections ngunit inangkin pa rin ang pagkapangulo, 1986. Pinabagsak ng nagkaisang sambayanang Filipino, 1986. Tumakas sa Amerika at nanatili roon hanggang yumao, 1989. Patagong inilibing bilang bayani, 2016.</p>' +
+  '<p>Pinatay, 3,275. Tinortyur, 35,000. Nawala, 1,600. Ninakaw, $10B.</p></div>';
 
 // Global static helper objects
 var OnsNavigator;
@@ -867,6 +872,7 @@ function initMarkerDetails() {
     }
     else if (textData.inscription !== null) {
       textDiv.append(textData.inscription);
+      if (info.qid === ALT_QID) textDiv.append(ALT_INSCRIPTION_HTML);
     }
     card.append(textDiv);
   });
