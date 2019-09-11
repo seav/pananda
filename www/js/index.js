@@ -1,32 +1,33 @@
 'use strict';
 
-const LANGUAGE_NAME          = {
-                                 'en' : 'English',
-                                 'tl' : 'Tagalog',
-                                 'ceb': 'Cebuano',
-                                 'ilo': 'Ilocano',
-                                 'pam': 'Kapampangan',
-                                 'es' : 'Spanish',
-                                 'de' : 'German',
-                                 'fr' : 'French',
-                               };
-const ORDERED_LANGUAGES      = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
-const DEGREE_LENGTH          = 110.96;  // kilometers, adjusted
-const DISTANCE_FILTERS       = [1, 2, 5, 10, 20, 50, 100];  // kilometers
-const TILE_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
-const TILE_LAYER_ATTRIBUTION = 'Base map &copy; OSM (data), CARTO (style)';
-const TILE_LAYER_MAX_ZOOM    = 19;
-const MIN_PH_LAT             =   4.5;  // degrees
-const MAX_PH_LAT             =  21.0;  // degrees
-const MIN_PH_LON             = 116.5;  // degrees
-const MAX_PH_LON             = 126.5;  // degrees
-const GPS_ZOOM_LEVEL         = 12;
-const CARD_WIDTH             = Math.floor($(window).width() - 48);  // pixels
-const PHOTO_MAX_WIDTH        = CARD_WIDTH - 16;  // pixels
-const THUMBNAIL_URL_TEMPLATE = 'https://upload.wikimedia.org/wikipedia/commons/thumb/{hash}/{filename}/{width}px-{filename}';
-const PROGRESS_MAX_VAL       = 339.292;
-const CHUNK_LENGTH           = 100;  // markers processed
-const SEARCH_DELAY           = 500;  // milliseconds
+const LANGUAGE_NAME           = {
+                                  'en' : 'English',
+                                  'tl' : 'Tagalog',
+                                  'ceb': 'Cebuano',
+                                  'ilo': 'Ilocano',
+                                  'pam': 'Kapampangan',
+                                  'es' : 'Spanish',
+                                  'de' : 'German',
+                                  'fr' : 'French',
+                                };
+const ORDERED_LANGUAGES       = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
+const DEGREE_LENGTH           = 110.96;  // kilometers, adjusted
+const DISTANCE_FILTERS        = [1, 2, 5, 10, 20, 50, 100];  // kilometers
+const TILE_LAYER_URL          = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
+const TILE_LAYER_ATTRIBUTION  = 'Base map &copy; OSM (data), CARTO (style)';
+const TILE_LAYER_MAX_ZOOM     = 19;
+const MIN_PH_LAT              =   4.5;  // degrees
+const MAX_PH_LAT              =  21.0;  // degrees
+const MIN_PH_LON              = 116.5;  // degrees
+const MAX_PH_LON              = 126.5;  // degrees
+const GPS_ZOOM_LEVEL          = 12;
+const CARD_WIDTH              = Math.floor($(window).width() - 48);  // pixels
+const PHOTO_MAX_WIDTH         = CARD_WIDTH - 16;  // pixels
+const PHOTO_PAGE_URL_TEMPLATE = 'https://commons.wikimedia.org/wiki/File:{filename}';
+const THUMBNAIL_URL_TEMPLATE  = 'https://commons.wikimedia.org/wiki/Special:FilePath/File:{filename}?width={width}';
+const PROGRESS_MAX_VAL        = 339.292;
+const CHUNK_LENGTH            = 100;  // markers processed
+const SEARCH_DELAY            = 500;  // milliseconds
 
 // Global static helper objects
 var OnsNavigator;
@@ -298,20 +299,20 @@ function initList() {
       let qid = qids[idx];
       let info = DATA[qid];
       let li = $(
-        '<ons-list-item data-qid="' + qid + '" class="' +
+        `<ons-list-item data-qid="${qid}" class="` +
           (info.visited    ? ' visited'    : '') +
           (info.bookmarked ? ' bookmarked' : '') +
         '">' +
           '<div class="center">' +
-            '<div class="name">' + info.name + '</div>' +
-            '<div class="address">' + info.macroAddress + '</div>' +
+            `<div class="name">${info.name}</div>` +
+            `<div class="address">${info.macroAddress}</div>` +
             '<div class="distance"></div>' +
           '</div>' +
           '<div class="right">' +
-            '<span data-qid="' + qid + '" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>' +
-            '<span data-qid="' + qid + '" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>' +
-            '<span data-qid="' + qid + '" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>' +
-            '<span data-qid="' + qid + '" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>' +
+            `<span data-qid="${qid}" data-action="visited"      class="zmdi zmdi-eye-off"         ></span>` +
+            `<span data-qid="${qid}" data-action="unvisited"    class="zmdi zmdi-eye"             ></span>` +
+            `<span data-qid="${qid}" data-action="bookmarked"   class="zmdi zmdi-bookmark-outline"></span>` +
+            `<span data-qid="${qid}" data-action="unbookmarked" class="zmdi zmdi-bookmark"        ></span>` +
           '</div>' +
         '</ons-list-item>'
       );
@@ -353,14 +354,14 @@ function initFilterDialog() {
   select = $('<ons-select id="region-filter"></ons-select>');
   select.append('<option val="0">any region</option>');
   Regions.forEach(value => {
-    select.append('<option val="' + value + '"' + (RegionFilterValue === value ? ' selected' : '') + '>' + value + '</option>');
+    select.append(`<option val="${value}"${(RegionFilterValue === value ? ' selected' : '')}>${value}</option>`);
   });
   $('#region-filter-wrapper').append(select);
 
   select = $('<ons-select id="distance-filter"></ons-select>');
   select.append('<option val="0">any distance</option>');
   DISTANCE_FILTERS.forEach(value => {
-    select.append('<option val="' + value + '"' + (DistanceFilterValue === value ? ' selected' : '') + '>within ' + value + ' km</option>');
+    select.append(`<option val="${value}"${(DistanceFilterValue === value ? ' selected' : '')}>within ${value} km</option>`);
   });
   $('#distance-filter-wrapper').append(select);
 }
@@ -407,9 +408,7 @@ function geolocateUser() {
       function(position) {
         stopGeolocatingUi();
         // Invalidate all distances
-        Object.keys(DATA).forEach(qid => {
-          DATA[qid].distance = null;
-        });
+        Object.values(DATA).forEach(info => { info.distance = null });
         CurrentPosition = {
           lat: position.coords.latitude,
           lon: position.coords.longitude,
@@ -489,7 +488,7 @@ function applySearch() {
   query = query.replace(/[[\]{}()*+!<=:?\/\\^$|#,@]/g, '');  // Remove some punctuation
   query = query.replace(/\./g, '\\$&');  // Escape periods
   let terms = query.split(/\s+/);
-  let regex = new RegExp(terms.map(x => '(?=.*' + x + ')').join(''), 'i');
+  let regex = new RegExp(terms.map(x => `(?=.*${x})`).join(''), 'i');
 
   // Perform search filtering
   let numPotentialResults = 0;
@@ -513,7 +512,7 @@ function applySearch() {
       msg.text('No results');
     }
     else {
-      msg.text('Showing ' + numActualResults + ' result' + (numActualResults > 1 ? 's' : '') + ' out of ' + numPotentialResults);
+      msg.text(`Showing ${numActualResults} result${(numActualResults > 1 ? 's' : '')} out of ${numPotentialResults}`);
     }
     msg.show();
     if (numActualResults === 0) {
@@ -631,7 +630,7 @@ function applyFilters(options = {}) {
     msg = 'No markers match the filters';
   }
   else if (!('suppressToast' in options) || !options.suppressToast) {
-    msg = 'Now showing ' + numVisible + ' marker' + (numVisible > 1 ? 's' : '');
+    msg = `Now showing ${numVisible} marker${numVisible > 1 ? 's' : ''}`;
   }
   if (msg) ons.notification.toast(msg, { timeout: 2000 });
 }
@@ -782,7 +781,7 @@ function initMarkerDetails() {
   let top = $(this).find('#details-content');
 
   let header = $('<header class="marker"></header>');
-  header.append('<h1>' + info.name + '</h1>');
+  header.append(`<h1>${info.name}</h1>`);
   if (info.date !== true) header.append(generateMarkerDateElem(info.date));
   top.append(header);
 
@@ -825,13 +824,13 @@ function initMarkerDetails() {
     );
     segmentItem.click(() => {
       $('.marker-text.' + code).addClass('active');
-      $('.marker-text:not(.' + code + ')').removeClass('active');
+      $(`.marker-text:not(.${code})`).removeClass('active');
       if (info.date === true) {
         $('.marker-date.' + code).addClass('active');
-        $('.marker-date:not(.' + code + ')').removeClass('active');
+        $(`.marker-date:not(.${code})`).removeClass('active');
       }
       $('.marker-figure.' + code).addClass('active');
-      $('.marker-figure:not(.' + code + ')').removeClass('active');
+      $(`.marker-figure:not(.${code})`).removeClass('active');
     });
     segment.append(segmentItem);
 
@@ -858,10 +857,10 @@ function initMarkerDetails() {
 
     // Process text
     let textData = (plaqueIsMonolingual ? l10nData[code].text : l10nData[code]);
-    let textDiv = $('<div class="marker-text ' + code + (index === 0 ? ' active' : '') + '"></div>');
+    let textDiv = $(`<div class="marker-text ${code + (index === 0 ? ' active' : '')}"></div>`);
     if (textData.title) {
-      textDiv.append('<h2>' + textData.title + '</h2>');
-      if (textData.subtitle) textDiv.append('<h3>' + textData.subtitle + '</h3>');
+      textDiv.append(`<h2>${textData.title}</h2>`);
+      if (textData.subtitle) textDiv.append(`<h3>${textData.subtitle}</h3>`);
     }
     if (textData.inscription === '') {
       textDiv.append('<p class="nodata">No inscription encoded yet.</p>');
@@ -877,7 +876,7 @@ function initMarkerDetails() {
     let linksDiv = $('<div class="wikipedia-links"><h3>Learn more on Wikipedia</h3></div>');
     Object.keys(info.wikipedia).forEach(title => {
       let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
-      let linkP = $('<p><a target="_system" href="https://en.wikipedia.org/wiki/' + escape(urlPath) + '">' + title + '</a></p>');
+      let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
       linksDiv.append(linkP);
     });
     card.append(linksDiv);
@@ -917,7 +916,7 @@ function generateMarkerDateElem(dateString) {
       },
     );
   }
-  return $('<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ' + text + '</div>');
+  return $(`<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ${text}</div>`);
 }
 
 function generateFigureElem(photoData) {
@@ -928,48 +927,49 @@ function generateFigureElem(photoData) {
 
     let width = photoData.width >= photoData.height ? PHOTO_MAX_WIDTH : PHOTO_MAX_WIDTH / photoData.height * photoData.width;
     let height = width / photoData.width * photoData.height;
-    let url = THUMBNAIL_URL_TEMPLATE.replace('{hash}', photoData.hash.substr(0, 1) + '/' + photoData.hash.substr(0, 2));
-    url = url.replace('{width}', Math.floor(width) * 2);
-    url = url.replace(/\{filename\}/g, photoData.file.replace(/ /g, '_'));
+    let encodedFilename = encodeURIComponent(photoData.file.replace(/ /g, '_'));
+    let pageUrl = PHOTO_PAGE_URL_TEMPLATE.replace('{filename}', encodedFilename);
+    let thumbUrl = THUMBNAIL_URL_TEMPLATE.replace('{filename}', encodedFilename);
+    thumbUrl = thumbUrl.replace('{width}', Math.floor(width) * 2);
 
     let placeholder = $('<div class="placeholder"></div>');
     placeholder.width(width);
     placeholder.height(height);
     figure.append(placeholder);
-    figure.append('<figcaption>' + photoData.credit + '</figcaption>');
+    figure.append(`<figcaption>${photoData.credit}</figcaption>`);
 
     if (ImgCacheIsAvailable) {
       // TODO: Implement cache validation
       ImgCache.isCached(
-        url,
+        thumbUrl,
         function(path, success) {
           if (success) {
             ImgCache.getCachedFileURL(
-              url,
-              function(url, path) {
-                replaceFigurePlaceholder(placeholder, path, width, height);
+              thumbUrl,
+              function(thumbUrl, path) {
+                replaceFigurePlaceholder(placeholder, pageUrl, path, width, height);
               },
               function() {
-                replaceFigurePlaceholder(placeholder, url, width, height);
+                replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
               },
             );
           }
           else {
             ImgCache.cacheFile(
-              url,
+              thumbUrl,
               function () {
                 ImgCache.getCachedFileURL(
-                  url,
-                  function(url, path) {
-                    replaceFigurePlaceholder(placeholder, path, width, height);
+                  thumbUrl,
+                  function(thumbUrl, path) {
+                    replaceFigurePlaceholder(placeholder, pageUrl, path, width, height);
                   },
                   function() {
-                    replaceFigurePlaceholder(placeholder, url, width, height);
+                    replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
                   },
                 );
               },
               function() {
-                replaceFigurePlaceholder(placeholder, url, width, height);
+                replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
               },
             );
           }
@@ -977,7 +977,7 @@ function generateFigureElem(photoData) {
       );
     }
     else {
-      replaceFigurePlaceholder(placeholder, url, width, height);
+      replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
     }
   }
 
@@ -995,8 +995,10 @@ function generateFigureElem(photoData) {
   return figure;
 }
 
-function replaceFigurePlaceholder(placeholder, src, width, height) {
-  placeholder.replaceWith('<img src="' + src + '" width="' + width +'" height="' + height + '">');
+function replaceFigurePlaceholder(placeholder, href, src, width, height) {
+  placeholder.replaceWith(
+    `<a target="_system" href="${href}"><img src="${src}" width="${width}" height="${height}"></a>`
+  );
 }
 
 function showMarkerOnMap() {
@@ -1021,7 +1023,7 @@ function showMarkerOnMap() {
 
 function showLocationInMapApp() {
   document.getElementById('loc-menu').hide();
-  window.open('geo:' + CurrentMarkerInfo.lat + ',' + CurrentMarkerInfo.lon + '?z=20');
+  window.open(`geo:${CurrentMarkerInfo.lat},${CurrentMarkerInfo.lon}?z=20`);
 }
 
 function updateStatus(qid, status) {
