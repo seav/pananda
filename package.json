@@ -1,13 +1,13 @@
 {
   "name": "com.sector4f.pananda",
   "displayName": "Panandâ",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Explore the NHCP historical markers of the Philippines",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Eugene Alvin Villar",
+  "author": "Sector4F",
   "license": "MIT",
   "cordova": {
     "plugins": {
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "cordova": "^9.0.0",
-    "cordova-android": "^7.1.4",
+    "cordova-android": "^8.0.0",
     "cordova-plugin-android-gpsdetect": "0.0.3",
     "cordova-plugin-device": "^2.0.2",
     "cordova-plugin-file": "^6.0.1",

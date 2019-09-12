@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.sector4f.pananda" version="1.4.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.sector4f.pananda" version="1.5.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Panandâ</name>
     <description>
         App to explore the National Historical Commission of the Philippines historical markers.
     </description>
-    <author email="seav80@gmail.com" href="http://www.sector4f.com">
-        Eugene Alvin Villar
+    <author email="info@sector4f.com" href="https://www.sector4f.com">
+        Sector4F
     </author>
     <content src="index.html" />
     <access origin="*" />
@@ -25,13 +25,15 @@
     <preference name="SplashMaintainAspectRatio" value="true" />
     <preference name="HeaderColor" value="#224466" />
     <preference name="android-minSdkVersion" value="21" />
+    <preference name="AndroidPersistentFileLocation" value="Compatibility" />
     <platform name="android">
-        <icon density="ldpi" src="res/icon/android/36.png" />
-        <icon density="mdpi" src="res/icon/android/48.png" />
-        <icon density="hdpi" src="res/icon/android/72.png" />
-        <icon density="xhdpi" src="res/icon/android/96.png" />
-        <icon density="xxhdpi" src="res/icon/android/144.png" />
-        <icon density="xxxhdpi" src="res/icon/android/192.png" />
+        <resource-file src="res/values/colors.xml" target="/app/src/main/res/values/colors.xml" />
+        <icon background="@color/background" density="ldpi" foreground="res/icon/android/36-adaptive-fg.png" src="res/icon/android/36.png" />
+        <icon background="@color/background" density="mdpi" foreground="res/icon/android/48-adaptive-fg.png" src="res/icon/android/48.png" />
+        <icon background="@color/background" density="hdpi" foreground="res/icon/android/72-adaptive-fg.png" src="res/icon/android/72.png" />
+        <icon background="@color/background" density="xhdpi" foreground="res/icon/android/96-adaptive-fg.png" src="res/icon/android/96.png" />
+        <icon background="@color/background" density="xxhdpi" foreground="res/icon/android/144-adaptive-fg.png" src="res/icon/android/144.png" />
+        <icon background="@color/background" density="xxxhdpi" foreground="res/icon/android/192-adaptive-fg.png" src="res/icon/android/192.png" />
         <splash density="port-hdpi" src="res/screen/android/splash.png" />
         <splash density="port-ldpi" src="res/screen/android/splash.png" />
         <splash density="port-mdpi" src="res/screen/android/splash.png" />
@@ -57,5 +59,4 @@
     <plugin name="cordova-plugin-geolocation" spec="~4.0.1" />
     <plugin name="cordova-plugin-android-gpsdetect" spec="~0.0.3" />
     <plugin name="cordova-plugin-headercolor" spec="1.0" />
-    <engine name="android" spec="^7.1.4" />
 </widget>
