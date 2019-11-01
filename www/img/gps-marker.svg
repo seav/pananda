@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="-33 -33 66 66">
+  <circle r="6" stroke="none" fill="#700" />
+  <g stroke="#700" stroke-width="8" stroke-linecap="butt" fill="none">
+    <circle r="22"/>
+    <path d="M0,-33v22M-33,0h22M0,33v-22M33,0h-22"/>
+  </g>
+  <circle r="5" stroke="none" fill="#d22" />
+  <g stroke="#d22" stroke-width="6" stroke-linecap="butt" fill="none">
+    <circle r="22"/>
+    <path d="M0,-32v20M-32,0h20M0,32v-20M32,0h-20"/>
+  </g>
+</svg>

@@ -420,11 +420,18 @@ function geolocateUser() {
         };
         if (!GpsMarker) {
           let icon = L.icon({
-            iconUrl    : 'img/red-marker.svg',
-            iconSize   : [24, 24],
-            iconAnchor : [12, 12],
+            iconUrl    : 'img/gps-marker.svg',
+            iconSize   : [48, 48],
+            iconAnchor : [24, 24],
           });
-          GpsMarker = L.marker(CurrentPosition, {icon: icon}).addTo(Map);
+          GpsMarker = L.marker(
+            CurrentPosition,
+            {
+              icon        : icon,
+              pane        : 'shadowPane',
+              interactive : false,
+            },
+          ).addTo(Map);
         }
         else {
           GpsMarker.setLatLng(CurrentPosition);
