@@ -491,6 +491,7 @@ figure figcaption {
 }
 
 .commons-link {
+  overflow: auto;
   padding: 16px;
   font-size: 14px;
 }
