@@ -92,6 +92,7 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
   <ons-list>
     <ons-list-item modifier="nodivider"   id="menu-contributing" onclick="showContributing()" >Contributing</ons-list-item>
     <ons-list-item modifier="longdivider" id="menu-resources"    onclick="showResources()"    >Other resources</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-settings"     onclick="showSettings()"     >Settings</ons-list-item>
     <ons-list-item modifier="nodivider"   id="menu-privacy"      onclick="showPrivacyPolicy()">Privacy policy</ons-list-item>
     <ons-list-item modifier="nodivider"   id="menu-about"        onclick="showAbout()"        >About</ons-list-item>
   </ons-list>
@@ -180,6 +181,36 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       </header>
       <p>The National Registry of Historic Sites and Structures in the Philippines is the official online registry of the NHCP for its declared historic sites. Though official, the website is badly outdated and very incomplete.</p>
     </ons-card>
+  </ons-page>
+</template>
+
+<template id="settings.html">
+  <ons-page id="settings" class="list-page">
+    <ons-toolbar>
+      <div class="left">
+        <ons-back-button icon="md-arrow-left"></ons-back-button>
+        <span>Settings</span>
+      </div>
+    </ons-toolbar>
+    <ons-list>
+      <ons-list-header>Map settings</ons-list-header>
+      <ons-list-item modifier="longdivider">
+        <div class="center">
+          <span class="list-item-title">Map marker clustering</span>
+          <span class="list-item-description">Combine map markers into groups to reduce clutter</span>
+        </div>
+        <div class="right"><ons-checkbox id="cluster-checkbox" checked onchange="toggleClustering()"></ons-checkbox></div>
+      </ons-list-item>
+      <ons-list-item modifier="longdivider">
+        <div class="center"><span class="list-item-title">Base map</span></div>
+        <div class="right">
+          <ons-select id="base-map-select" onchange="switchBaseMap()">
+            <option value="carto">CARTO Voyager</option>
+            <option value="wiki">Wikimedia Maps</option>
+          </ons-select>
+        </div>
+      </ons-list-item>
+    </ons-list>
   </ons-page>
 </template>
 

@@ -513,7 +513,8 @@ figure figcaption {
   margin-top: 0;
 }
 
-.misc-page .page__background {
+.misc-page .page__background,
+.list-page .page__background {
   background: #fff;
 }
 
@@ -583,6 +584,24 @@ figure figcaption {
   font-weight: 400;
   font-style: italic;
   color: #666;
+}
+
+#settings .page__content {
+  padding-top: 16px;
+}
+
+#settings .list-header--material {
+  text-transform: uppercase;
+  color: #688;
+}
+
+#settings .list-item-title,
+#settings .list-item-description {
+  display: block;
+}
+
+#settings .list-item-description {
+  font-size: 0.8em;
 }
 
 #about-logo {

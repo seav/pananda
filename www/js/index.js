@@ -23,8 +23,10 @@ const IS_TRANSLATABLE         = {
 const ORDERED_LANGUAGES       = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
 const DEGREE_LENGTH           = 110.96;  // kilometers, adjusted
 const DISTANCE_FILTERS        = [1, 2, 5, 10, 20, 50, 100];  // kilometers
-const TILE_LAYER_URL          = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
-const TILE_LAYER_ATTRIBUTION  = 'Base map &copy; OSM (data), CARTO (style)';
+const CARTO_LAYER_URL         = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
+const CARTO_LAYER_ATTRIBUTION = 'Base map &copy; OSM (data), CARTO (style)';
+const WIKI_LAYER_URL          = 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png';
+const WIKI_LAYER_ATTRIBUTION  = 'Base map &copy; OSM (data), Wikimedia (style)';
 const TILE_LAYER_MAX_ZOOM     = 19;
 const MIN_PH_LAT              =   4.5;  // degrees
 const MAX_PH_LAT              =  21.0;  // degrees
@@ -48,15 +50,20 @@ const ALT_INSCRIPTION_HTML    =
 var OnsNavigator;
 var Map;
 var Cluster;
+var FlatMapMarkers;
 var MapPopup;
 var MapPopupContent;
 var MapPopupMarker;
 var GpsMarker;
+var CartoTileLayer;
+var WikiTileLayer;
 
 // Global static flags
 var ImgCacheIsAvailable   = false;
 
 // Preferences
+var ClusteringIsEnabled;
+var BaseMapStyle;
 var VisitedFilterValue;
 var BookmarkedFilterValue;
 var RegionFilterValue;
@@ -103,6 +110,9 @@ function initApp() {
   Regions = [...Object.keys(Regions).sort()];
 
   // Initialize preferences
+  ClusteringIsEnabled   = localStorage.getItem('clustering-on'    ) || true;
+  ClusteringIsEnabled = ClusteringIsEnabled === 'true' || ClusteringIsEnabled === true;
+  BaseMapStyle          = localStorage.getItem('base-map'         ) || 'carto';
   VisitedFilterValue    = localStorage.getItem('visited-filter'   ) || 'any';
   BookmarkedFilterValue = localStorage.getItem('bookmarked-filter') || 'any';
   RegionFilterValue     = localStorage.getItem('region-filter'    );
@@ -169,14 +179,27 @@ function initMap() {
   };
   locButton.addTo(Map);
 
-  // Add tile layer
-  new L.tileLayer(
-    TILE_LAYER_URL,
+  // Add tile layers
+  CartoTileLayer = new L.tileLayer(
+    CARTO_LAYER_URL,
     {
-      attribution : TILE_LAYER_ATTRIBUTION,
+      attribution : CARTO_LAYER_ATTRIBUTION,
       maxZoom     : TILE_LAYER_MAX_ZOOM,
     },
-  ).addTo(Map);
+  );
+  WikiTileLayer = new L.tileLayer(
+    WIKI_LAYER_URL,
+    {
+      attribution : WIKI_LAYER_ATTRIBUTION,
+      maxZoom     : TILE_LAYER_MAX_ZOOM,
+    },
+  );
+  if (BaseMapStyle === 'carto') {
+    CartoTileLayer.addTo(Map);
+  }
+  else {
+    WikiTileLayer.addTo(Map);
+  }
 }
 
 function generateMapMarkers() {
@@ -191,7 +214,8 @@ function generateMapMarkers() {
       if (z >=  19) return 10;
     },
     showCoverageOnHover: false,
-  }).addTo(Map);
+  })
+  if (ClusteringIsEnabled) Cluster.addTo(Map);
 
   // Initialize the reusable map popup
   MapPopupContent = $(
@@ -636,8 +660,14 @@ function applyFilters(options = {}) {
       info.visible = false;
     }
   });
-  Cluster.clearLayers();
-  Cluster.addLayers(visibleMapMarkers);
+
+  if (ClusteringIsEnabled) {
+    Cluster.clearLayers();
+    Cluster.addLayers(visibleMapMarkers);
+  }
+  else {
+    FlatMapMarkers = new L.layerGroup(visibleMapMarkers).addTo(Map);
+  }
 
   sortMainList(visibleQids);
 
@@ -668,7 +698,12 @@ function hideStatusUpdatedMarkers() {
       info.visible = false;
     }
   });
-  Cluster.removeLayers(mapMarkers);
+  if (ClusteringIsEnabled) {
+    Cluster.removeLayers(mapMarkers);
+  }
+  else {
+    mapMarkers.forEach(marker => { FlatMapMarkers.removeLayer(marker) });
+  }
 
   StatusUpdatedMarkerQids = [];
 }
@@ -767,6 +802,7 @@ function showMiscPage(templateId) {
 
 function showContributing () { showMiscPage('contributing.html'  ); }
 function showResources    () { showMiscPage('resources.html'     ); }
+function showSettings     () { showMiscPage('settings.html'      ); }
 function showPrivacyPolicy() { showMiscPage('privacy-policy.html'); }
 function showAbout        () { showMiscPage('about.html'         ); }
 
@@ -1066,14 +1102,21 @@ function showMarkerOnMap() {
   OnsNavigator.popPage({
     animation : 'slide',
     callback  : () => {
-      Cluster.zoomToShowLayer(
-        CurrentMarkerInfo.mapMarker,
-        () => {
-          Map.panTo([CurrentMarkerInfo.lat, CurrentMarkerInfo.lon]);
-          CurrentMarkerInfo.mapMarker.bindPopup(MapPopup).openPopup();
-          MapPopupMarker = CurrentMarkerInfo.mapMarker;
-        },
-      );
+      if (ClusteringIsEnabled) {
+        Cluster.zoomToShowLayer(
+          CurrentMarkerInfo.mapMarker,
+          () => {
+            Map.panTo([CurrentMarkerInfo.lat, CurrentMarkerInfo.lon]);
+            CurrentMarkerInfo.mapMarker.bindPopup(MapPopup).openPopup();
+            MapPopupMarker = CurrentMarkerInfo.mapMarker;
+          },
+        );
+      }
+      else {
+        Map.setView([CurrentMarkerInfo.lat, CurrentMarkerInfo.lon], TILE_LAYER_MAX_ZOOM);
+        CurrentMarkerInfo.mapMarker.bindPopup(MapPopup).openPopup();
+        MapPopupMarker = CurrentMarkerInfo.mapMarker;
+      }
     },
   });
 }
@@ -1127,4 +1170,39 @@ function updateStatus(qid, status) {
   localStorage.setItem(qid, serializedStatus);
 
   StatusUpdatedMarkerQids.push(qid);
+}
+
+function toggleClustering(save = true) {
+  if (save) {
+    console.log(document.getElementById('cluster-checkbox').checked);
+    ClusteringIsEnabled = document.getElementById('cluster-checkbox').checked;
+    localStorage.setItem('clustering-on', ClusteringIsEnabled);
+  }
+  console.log(ClusteringIsEnabled);
+  if (ClusteringIsEnabled) {
+    console.log('CLuster should be shown');
+    Cluster.addTo(Map);
+    Cluster.clearLayers();
+    Cluster.addLayers(FlatMapMarkers.getLayers());
+    FlatMapMarkers.remove();
+  }
+  else {
+    FlatMapMarkers = new L.layerGroup(Cluster.getLayers()).addTo(Map);
+    Cluster.remove();
+  }
+}
+
+function switchBaseMap(save = true) {
+  if (save) {
+    BaseMapStyle = document.getElementById('base-map-select').value;
+    localStorage.setItem('base-map', BaseMapStyle);
+  }
+  if (BaseMapStyle === 'carto') {
+    WikiTileLayer.remove();
+    CartoTileLayer.addTo(Map);
+  }
+  else {
+    CartoTileLayer.remove();
+    WikiTileLayer.addTo(Map);
+  }
 }
