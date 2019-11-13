@@ -5,10 +5,20 @@ const LANGUAGE_NAME           = {
                                   'tl' : 'Tagalog',
                                   'ceb': 'Cebuano',
                                   'ilo': 'Ilocano',
-                                  'pam': 'Kapampangan',
+                                  'pam': 'Pampangan',
                                   'es' : 'Spanish',
                                   'de' : 'German',
                                   'fr' : 'French',
+                                };
+const IS_TRANSLATABLE         = {
+                                  'en' : true,
+                                  'tl' : true,
+                                  'ceb': true,
+                                  'ilo': false,
+                                  'pam': false,
+                                  'es' : true,
+                                  'de' : true,
+                                  'fr' : true,
                                 };
 const ORDERED_LANGUAGES       = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
 const DEGREE_LENGTH           = 110.96;  // kilometers, adjusted
@@ -819,6 +829,7 @@ function initMarkerDetails() {
   }
 
   let langCodes = $.grep(ORDERED_LANGUAGES, x => l10nData[x]);
+  let hasNoEnglish = langCodes[0] !== 'en';
 
   let segment = $('<div class="segment segment--material"></div>');
   if (langCodes.length === 1) segment.addClass('single');
@@ -870,16 +881,32 @@ function initMarkerDetails() {
     // Process text
     let textData = (plaqueIsMonolingual ? l10nData[code].text : l10nData[code]);
     let textDiv = $(`<div class="marker-text ${code + (index === 0 ? ' active' : '')}"></div>`);
+    let isTranslatable = hasNoEnglish && IS_TRANSLATABLE[code];
+    let translatableText = '';
     if (textData.title) {
       textDiv.append(`<h2>${textData.title}</h2>`);
-      if (textData.subtitle) textDiv.append(`<h3>${textData.subtitle}</h3>`);
+      if (isTranslatable) translatableText += textData.title.replace('<br>', '\n');
+      if (textData.subtitle) {
+        textDiv.append(`<h3>${textData.subtitle}</h3>`);
+        if (isTranslatable) translatableText += '\n' + textData.subtitle.replace('<br>', '\n');
+      }
     }
     if (textData.inscription === '') {
       textDiv.append('<p class="nodata">No inscription encoded yet.</p>');
     }
     else if (textData.inscription !== null) {
       textDiv.append(textData.inscription);
+      if (isTranslatable) {
+        translatableText += '\n\n' + textData.inscription
+          .replace(/<\/p><p>/g, '\n\n')
+          .replace(/<br>/g, '\n')
+          .replace(/<[^>]+>/g, '');
+      }
       if (info.qid === ALT_QID) textDiv.append(ALT_INSCRIPTION_HTML);
+    }
+    if (isTranslatable) {
+      let url = `https://translate.google.com/#${code}/en/${encodeURIComponent(translatableText)}`;
+      textDiv.append(`<a class="translate-link" target="_system" href="${url}">Translate into English</a>`);
     }
     card.append(textDiv);
   });
@@ -902,7 +929,7 @@ function initMarkerDetails() {
   top.append(card);
 
   let button = $('<ons-button><ons-icon icon="md-more-vert"></ons-icon></ons-button>');
-  button.click((e) => { document.getElementById('loc-menu').show(e) });
+  button.click(e => { document.getElementById('loc-menu').show(e) });
   card.append(button);
 
   if (info.address ) card.append('<p><strong>Address:</strong> ' + info.address);

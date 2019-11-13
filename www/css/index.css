@@ -354,6 +354,10 @@ header.marker .marker-date {
   display: none;
 }
 
+.marker-text * {
+  user-select: text;
+}
+
 .card .marker-date.active,
 .marker-figure.active,
 .marker-text.active {
@@ -418,6 +422,16 @@ figure figcaption {
 .marker-text p.nodata {
   font-style: italic;
   color: #888;
+  user-select: none;
+}
+
+.translate-link {
+  display: block;
+  margin-top: 0.5em;
+  font-size: 14px;
+  text-align: right;
+  font-style: italic;
+  color: #68a;
 }
 
 .alt-inscription {
