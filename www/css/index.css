@@ -447,15 +447,41 @@ figure figcaption {
   background: #ddd;
 }
 
+.alt-inscription a {
+  color: #246;
+}
+
 .alt-inscription p:not(.blurb) {
   margin: 0;
   padding: 0 12px 12px;
 }
 
-.wikipedia-links {
+.wikimedia-links {
   margin: 16px -16px -16px;
+}
+
+.wikimedia-links > div:nth-child(1) {
+  background: rgba(68, 136, 187, 0.15);
+}
+
+.wikimedia-links > div:nth-child(2) {
+  background: rgba(68, 136, 187, 0.3);
+}
+
+.wikimedia-links ons-icon {
+  display: block;
+  float: right;
+  margin: 0 0 0 8px;
+  font-size: 36px;
+  color: #468;
+}
+
+.wikimedia-links a {
+  color: #246;
+}
+
+.wikipedia-links {
   padding: 16px;
-  background: rgba(68, 136, 187, 0.2);
 }
 
 .wikipedia-links h3 {
@@ -464,8 +490,9 @@ figure figcaption {
   font-weight: 700;
 }
 
-.wikipedia-links a {
-  color: #246;
+.commons-link {
+  padding: 16px;
+  font-size: 14px;
 }
 
 .card.location {

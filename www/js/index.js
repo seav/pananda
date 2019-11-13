@@ -911,15 +911,32 @@ function initMarkerDetails() {
     card.append(textDiv);
   });
 
-  // Add Wikipedia links
-  if (info.wikipedia) {
-    let linksDiv = $('<div class="wikipedia-links"><h3>Learn more on Wikipedia</h3></div>');
-    Object.keys(info.wikipedia).forEach(title => {
-      let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
-      let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
-      linksDiv.append(linkP);
-    });
-    card.append(linksDiv);
+  // Add Wikimedia links
+  if (info.wikipedia || info.commons) {
+
+    let wrapperDiv = $('<div class="wikimedia-links"></div>');
+    card.append(wrapperDiv);
+
+    // Add Wikipedia links
+    if (info.wikipedia) {
+      let linksDiv = $('<div class="wikipedia-links"><ons-icon icon="md-wikipedia"></ons-icon><h3>Learn more on Wikipedia</h3></div>');
+      Object.keys(info.wikipedia).forEach(title => {
+        let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
+        let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
+        linksDiv.append(linkP);
+      });
+      wrapperDiv.append(linksDiv);
+    }
+
+    // Add Commons link
+    if (info.commons) {
+      let linkDiv = $(
+        '<div class="commons-link"><ons-icon icon="md-collection-image"></ons-icon>' +
+        `<a target="_system" href="https://commons.wikimedia.org/wiki/Category:${info.commons}">View more photos from Wikimedia Commons</a>` +
+        '</div>'
+      );
+      wrapperDiv.append(linkDiv);
+    }
   }
 
   // Construct card for marker location
