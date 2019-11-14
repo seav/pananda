@@ -902,12 +902,12 @@ function initMarkerDetails() {
           .replace(/<br>/g, '\n')
           .replace(/<[^>]+>/g, '');
       }
-      if (info.qid === ALT_QID) textDiv.append(ALT_INSCRIPTION_HTML);
     }
     if (isTranslatable) {
       let url = `https://translate.google.com/#${code}/en/${encodeURIComponent(translatableText)}`;
       textDiv.append(`<a class="translate-link" target="_system" href="${url}">Translate into English</a>`);
     }
+    if (info.qid === ALT_QID) textDiv.append(ALT_INSCRIPTION_HTML);
     card.append(textDiv);
   });
 
