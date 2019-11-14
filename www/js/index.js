@@ -21,6 +21,8 @@ const IS_TRANSLATABLE         = {
                                   'fr' : true,
                                 };
 const ORDERED_LANGUAGES       = ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'];
+const EN_MONTH_NAMES          = 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec'.split(',');
+const TL_MONTH_NAMES          = 'Ene,Peb,Mar,Abr,May,Hun,Hul,Ago,Set,Okt,Nob,Dis'.split(',');
 const DEGREE_LENGTH           = 110.96;  // kilometers, adjusted
 const DISTANCE_FILTERS        = [1, 2, 5, 10, 20, 50, 100];  // kilometers
 const TILE_LAYER_URL          = 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
@@ -38,6 +40,14 @@ const THUMBNAIL_URL_TEMPLATE  = 'https://commons.wikimedia.org/wiki/Special:File
 const PROGRESS_MAX_VAL        = 339.292;
 const CHUNK_LENGTH            = 100;  // markers processed
 const SEARCH_DELAY            = 500;  // milliseconds
+const DATE_LOCALE             = [
+                                  'en-US',
+                                  {
+                                    month : 'long',
+                                    day   : 'numeric',
+                                    year  : 'numeric',
+                                  },
+                                ];
 const ALT_QID                 = 'Q67080061';
 const ALT_INSCRIPTION_HTML    =
   '<div class="alt-inscription"><p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
@@ -54,7 +64,7 @@ var MapPopupMarker;
 var GpsMarker;
 
 // Global static flags
-var ImgCacheIsAvailable   = false;
+var ImgCacheIsAvailable = false;
 
 // Preferences
 var VisitedFilterValue;
@@ -65,6 +75,7 @@ var DistanceFilterValue;
 // Global state and status flags
 var Regions                 = {};
 var ViewMode                = 'map';
+var OnThisDayIsEnabled      = false;
 var CurrentPosition;
 var IsGeolocating           = false;
 var GpsOffToastIsShown      = false;
@@ -128,13 +139,15 @@ function initCordova() {
 function initMain() {
   OnsNavigator = document.getElementById('navigator');
   $('#view-mode-button').click(toggleView);
-  $('ons-toolbar-button[icon="md-tune"     ]').click(showFilterDialog);
-  $('ons-toolbar-button[icon="md-more-vert"]').click(showMainMenu    );
+  $('#this-day-button' ).click(toggleOnThisDay);
+  $('ons-toolbar-button[icon="md-tune"          ]').click(showFilterDialog);
+  $('ons-toolbar-button[icon="md-more-vert"     ]').click(showMainMenu    );
   initMap();
   if ('splashscreen' in navigator) navigator.splashscreen.hide();
   generateMapMarkers();
   initList();
   initFilterDialog();
+  initFlatTexts();
   $('#explore').on('initfinished', () => {
     $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
     $('#init-progress').fadeOut();
@@ -362,6 +375,21 @@ function initList() {
   });
 }
 
+function initFlatTexts() {
+  let textTypes = ['title', 'subtitle', 'inscription'];
+  Object.values(DATA).forEach(record => {
+    let details = record.details;
+    let textHashes;
+    if ('text' in details) {
+      textHashes = Object.values(details.text);
+    }
+    else {
+      textHashes = Object.values(details).map(l10n => l10n.text);
+    }
+    record.flatText = textHashes.map(textHash => textTypes.map(textType => textHash[textType] || '').join('\n')).join('\n');
+  })
+}
+
 function initFilterDialog() {
 
   let select;
@@ -379,6 +407,12 @@ function initFilterDialog() {
     select.append(`<option val="${value}"${(DistanceFilterValue === value ? ' selected' : '')}>within ${value} km</option>`);
   });
   $('#distance-filter-wrapper').append(select);
+}
+
+function toggleOnThisDay() {
+  OnThisDayIsEnabled = !OnThisDayIsEnabled;
+  $('#this-day-button').attr('icon', 'md-calendar' + (OnThisDayIsEnabled ? '-check' : ''));
+  applyFilters();
 }
 
 function toggleView() {
@@ -621,11 +655,36 @@ function closeFilterDialog() {
 // - suppressToast : set to true to disable the toast message
 function applyFilters(options = {}) {
 
+  let isFiltered =
+    VisitedFilterValue    !== 'any' ||
+    BookmarkedFilterValue !== 'any' ||
+    RegionFilterValue     !== null  ||
+    DistanceFilterValue   !== null;
+
   let visibleQids = [], visibleMapMarkers = [];
+
+  let today = new Date;
+  let todayRegex;
+  if (OnThisDayIsEnabled) {
+
+    let monthIdx = today.getMonth();
+    let enMonth = EN_MONTH_NAMES[monthIdx];
+    let tlMonth = TL_MONTH_NAMES[monthIdx];
+    let date = today.getDate();
+
+    todayRegex = new RegExp(
+      `\\b${date} (?:${enMonth}|${tlMonth})|` +
+      `ika-${date} ng ${tlMonth}|` +
+      `(?:${enMonth}|${tlMonth})[a-z]* ${date}\\b`
+    );
+  }
 
   Object.keys(DATA).forEach(qid => {
     let info = DATA[qid];
-    if (doesMarkerMatchFilters(info)) {
+    if (
+      doesMarkerMatchFilters(info) &&
+      (!OnThisDayIsEnabled || todayRegex.test(info.flatText))
+    ) {
       visibleQids.push(qid);
       visibleMapMarkers.push(info.mapMarker);
       $(info.mainListItem).show();
@@ -645,16 +704,37 @@ function applyFilters(options = {}) {
   // the GPS location, we need to re-apply the search
   applySearch();
 
-  // Show toast message as needed
+  // Show toast or alert message as needed
   let numVisible = visibleQids.length;
   let msg = null;
   if (numVisible === 0) {
-    msg = 'No markers match the filters';
+    msg = OnThisDayIsEnabled
+      ? `Sadly, there are no relevant historical markers today${isFiltered ? ' that match your current filters' : ''}. ☹️`
+      : 'No historical markers match the filters';
   }
   else if (!('suppressToast' in options) || !options.suppressToast) {
-    msg = `Now showing ${numVisible} marker${numVisible > 1 ? 's' : ''}`;
+    let markersWord = ` marker${numVisible > 1 ? 's' : ''}`;
+    msg = OnThisDayIsEnabled
+      ? `On this day, there ${numVisible > 1 ? 'are' : 'is'} ${numVisible} relevant historical ${markersWord} for you to explore!`
+      : `Now showing ${numVisible} historical ${markersWord}`;
   }
-  if (msg) ons.notification.toast(msg, { timeout: 2000 });
+  if (msg) {
+    if (OnThisDayIsEnabled) {
+      let prevAlert = document.getElementById('today-alert');
+      if (prevAlert) prevAlert.hide({ animation: 'none' });
+      ons.notification.alert(
+        msg,
+        {
+          id         : 'today-alert',
+          title      : today.toLocaleDateString(...DATE_LOCALE),
+          cancelable : true,
+        },
+      );
+    }
+    else {
+      ons.notification.toast(msg, { timeout: 2000 });
+    }
+  }
 }
 
 function hideStatusUpdatedMarkers() {
@@ -964,14 +1044,7 @@ function generateMarkerDateElem(dateString) {
   }
   else {
     let date = new Date(dateString);
-    text = 'Unveiled on ' + date.toLocaleDateString(
-      'en-US',
-      {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      },
-    );
+    text = 'Unveiled on ' + date.toLocaleDateString(...DATE_LOCALE);
   }
   return $(`<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ${text}</div>`);
 }

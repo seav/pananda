@@ -18,6 +18,7 @@ ons-button {
   fill: white;
 }
 
+ons-toolbar-button[icon="md-calendar"],
 ons-toolbar-button[icon="md-eye-off"],
 ons-toolbar-button[icon="md-bookmark-outline"] {
   color: rgba(255, 255, 255, 0.5);
@@ -223,6 +224,15 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 #main-list #missing-info-notice {
   display: none;
   padding: 0 16px;
+}
+
+#today-alert .alert-dialog-title {
+  color: #468;
+}
+
+#today-alert ons-alert-dialog-button {
+  font-weight: bold;
+  color: #48b;
 }
 
 #filter-dialog .dialog-container {
