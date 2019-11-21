@@ -898,7 +898,7 @@ function initMarkerDetails() {
   let plaqueIsMonolingual = true;
 
   // Adjust if plaque is multilingual
-  if ('photo' in info.details) {
+  if ('text' in info.details) {
     l10nData = info.details.text;
     plaqueIsMonolingual = false;
   }
