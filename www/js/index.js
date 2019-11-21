@@ -50,7 +50,7 @@ const DATE_LOCALE             = [
                                 ];
 const ALT_QID                 = 'Q67080061';
 const ALT_INSCRIPTION_HTML    =
-  '<div class="alt-inscription"><p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
+  '<div class="appendix alt-inscription"><p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
   '<p>Diktador. Naging pangulo, 1965 at 1969. Sinubukang ibagsak ng kabataan sa Unang Sigwa, 1970. Sinuspinde ang writ of habeas corpus, 1971. Ipinasa ang proclamation 1081 at nagdeklara ng Batas Militar, 1972. Nagpataw ng Bagong Saligang Batas, 1973. Isinabatas ang “Bagong Lipunan”, 1982. Tumakbo at nanalo sa huwad na halalan, 1981. Natalo sa snap elections ngunit inangkin pa rin ang pagkapangulo, 1986. Pinabagsak ng nagkaisang sambayanang Filipino, 1986. Tumakas sa Amerika at nanatili roon hanggang yumao, 1989. Patagong inilibing bilang bayani, 2016.</p>' +
   '<p>Pinatay, 3,275. Tinortyur, 35,000. Nawala, 1,600. Ninakaw, $10B.</p></div>';
 
@@ -987,34 +987,61 @@ function initMarkerDetails() {
       let url = `https://translate.google.com/#${code}/en/${encodeURIComponent(translatableText)}`;
       textDiv.append(`<a class="translate-link" target="_system" href="${url}">Translate into English</a>`);
     }
-    if (info.qid === ALT_QID) textDiv.append(ALT_INSCRIPTION_HTML);
     card.append(textDiv);
   });
 
-  // Add Wikimedia links
-  if (info.wikipedia || info.commons) {
+  // Add card appendix
+  if (info.wikipedia || info.commons || info.qid === ALT_QID) {
 
-    let wrapperDiv = $('<div class="wikimedia-links"></div>');
+    let wrapperDiv = $('<div class="detail-appendices"></div>');
     card.append(wrapperDiv);
+
+    let numAppendices = 0;
+    if (info.wikipedia      ) numAppendices++;
+    if (info.commons        ) numAppendices++;
+    if (info.qid === ALT_QID) numAppendices++;
+    let appendixIdx = 0;
+
+    // Add anti-revisionism text
+    if (info.qid === ALT_QID) {
+      let altDiv = $(ALT_INSCRIPTION_HTML);
+      switch (numAppendices) {
+        case 1: altDiv.addClass('appendix-2' ); break;
+        case 2: altDiv.addClass('appendix-15'); break;
+        case 3: altDiv.addClass('appendix-1' );
+      }
+      wrapperDiv.append(altDiv);
+      appendixIdx++;
+    }
 
     // Add Wikipedia links
     if (info.wikipedia) {
-      let linksDiv = $('<div class="wikipedia-links"><ons-icon icon="md-wikipedia"></ons-icon><h3>Learn more on Wikipedia</h3></div>');
+      let linksDiv = $('<div class="iconed-appendix wikipedia-links"><ons-icon icon="md-wikipedia"></ons-icon></div>');
+      switch (`${appendixIdx}${numAppendices}`) {
+        case '01':
+        case '13': linksDiv.addClass('appendix-2' ); break;
+        case '02': linksDiv.addClass('appendix-15'); break;
+        case '12': linksDiv.addClass('appendix-3' ); break;
+      }
+      let linksTextDiv = $('<div class="appendix-main"><h3>Learn more on Wikipedia</h3></div>');
       Object.keys(info.wikipedia).forEach(title => {
         let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
         let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
-        linksDiv.append(linkP);
+        linksTextDiv.append(linkP);
       });
+      linksDiv.append(linksTextDiv);
       wrapperDiv.append(linksDiv);
+      appendixIdx++;
     }
 
     // Add Commons link
     if (info.commons) {
       let linkDiv = $(
-        '<div class="commons-link"><ons-icon icon="md-collection-image"></ons-icon>' +
-        `<a target="_system" href="https://commons.wikimedia.org/wiki/Category:${info.commons}">View more photos from Wikimedia Commons</a>` +
+        '<div class="iconed-appendix commons-link"><ons-icon icon="md-collection-image"></ons-icon>' +
+        `<a class="appendix-main" target="_system" href="https://commons.wikimedia.org/wiki/Category:${info.commons}">View more photos from Wikimedia Commons</a>` +
         '</div>'
       );
+      linkDiv.addClass(numAppendices === 1 ? 'appendix-2' : 'appendix-3');
       wrapperDiv.append(linkDiv);
     }
   }

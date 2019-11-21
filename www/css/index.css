@@ -444,53 +444,52 @@ figure figcaption {
   color: #68a;
 }
 
-.alt-inscription {
-  margin: 16px 0;
-  background: #eee;
-}
-
-.alt-inscription .blurb {
-  margin-bottom: 12px;
-  padding: 12px;
-  font-style: italic;
-  color: #666;
-  background: #ddd;
-}
-
-.alt-inscription a {
-  color: #246;
-}
-
-.alt-inscription p:not(.blurb) {
-  margin: 0;
-  padding: 0 12px 12px;
-}
-
-.wikimedia-links {
+.detail-appendices {
   margin: 16px -16px -16px;
 }
 
-.wikimedia-links > div:nth-child(1) {
-  background: rgba(68, 136, 187, 0.15);
+.detail-appendices > div.appendix-1  { background: rgba(68, 136, 187, 0.1 ) }
+.detail-appendices > div.appendix-15 { background: rgba(68, 136, 187, 0.15) }
+.detail-appendices > div.appendix-2  { background: rgba(68, 136, 187, 0.2 ) }
+.detail-appendices > div.appendix-3  { background: rgba(68, 136, 187, 0.3 ) }
+
+.detail-appendices a {
+  color: #246;
 }
 
-.wikimedia-links > div:nth-child(2) {
-  background: rgba(68, 136, 187, 0.3);
+.alt-inscription {
+  padding: 16px;
 }
 
-.wikimedia-links ons-icon {
+.alt-inscription .blurb {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #8ac;
+  font-style: italic;
+  color: #68a;
+}
+
+.alt-inscription p:not(.blurb) {
+  margin: 12px 0 0;
+}
+
+.iconed-appendix {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+}
+
+.iconed-appendix ons-icon {
   display: block;
-  float: right;
-  margin: 0 0 0 8px;
+  align-self: flex-start;
+  padding: 16px 16px 16px 0;
   font-size: 36px;
   color: #468;
 }
 
-.wikimedia-links a {
-  color: #246;
-}
-
-.wikipedia-links {
+.appendix-main {
+  display: block;
+  flex: 1 1 auto;
   padding: 16px;
 }
 
@@ -501,8 +500,6 @@ figure figcaption {
 }
 
 .commons-link {
-  overflow: auto;
-  padding: 16px;
   font-size: 14px;
 }
 
