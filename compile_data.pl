@@ -87,7 +87,7 @@ binmode STDERR, ':encoding(UTF-8)';
 my $Log_Level = 1;
 
 my %Data;
-my @error_msgs;
+my @Error_Msgs;
 
 my $num_markers;
 my $sparql_values;
@@ -112,82 +112,66 @@ sub query_data {
 
     my @steps = (
         {
-            title                => 'initial marker data with coordinates',
             is_wdqs_step         => 1,
+            title                => 'initial marker data with coordinates',
             sparql_query         => get_initial_data_spaql_query(),
-
             csv_record_processor => \&process_initial_data_csv_record,
-
-            # Check that the number of coordinates matches the number of plaques
-            # and if the number of coordinates is more than 1, average them
             post_processor       => \&post_process_initial_data,
-
             set_helper_vars      => 1,
         },
         {
-            title                => 'address data',
             is_wdqs_step         => 1,
+            title                => 'address data',
             sparql_query         => get_address_data_sparql_query(),
-
             csv_record_processor => \&process_address_data_csv_record,
         },
         {
-            title                => 'title data',
             is_wdqs_step         => 1,
+            title                => 'title data',
             sparql_query         => get_title_data_sparql_query(),
-
             csv_record_processor => \&process_title_data_csv_record,
-
-            # Sanity-check number of languages and titles, and also generate name field
             post_processor       => \&post_process_title_data,
         },
         {
-            title                => 'short inscription data',
             is_wdqs_step         => 1,
+            title                => 'short inscription data',
             sparql_query         => get_inscription_data_sparql_query(),
-
             csv_record_processor => \&process_inscription_data_csv_record,
         },
         {
-            title                => 'long inscription data',
             is_wdqs_step         => undef,
-
+            title                => 'long inscription data',
             process_datum        => \&query_long_inscription,
             callback             => \&process_long_inscription,
         },
         {
-            title                => 'unveiling date data',
             is_wdqs_step         => 1,
+            title                => 'unveiling date data',
             sparql_query         => get_unveiling_data_sparql_query(),
-
             csv_record_processor => \&process_unveiling_data_csv_record,
         },
         {
-            title                => 'photo data',
             is_wdqs_step         => 1,
+            title                => 'photo data',
             sparql_query         => get_photo_data_sparql_query(),
-
             csv_record_processor => \&process_photo_data_csv_record,
         },
         {
-            title                => 'photo metadata',
             is_wdqs_step         => undef,
-
+            title                => 'photo metadata',
             process_datum        => \&query_marker_photos_metadata,
             callback             => \&process_photo_metadata,
         },
         {
-            title                => 'commemorates-Wikipedia data',
             is_wdqs_step         => 1,
+            title                => 'commemorates-Wikipedia data',
             sparql_query         => get_commemorates_data_sparql_query(),
-
             csv_record_processor => \&process_commemorates_data_csv_record,
         },
         {
-            title                => 'Commons category data',
             is_wdqs_step         => 1,
+            title                => 'Commons category data',
             sparql_query         => get_category_data_sparql_query(),
-
             csv_record_processor => \&process_category_data_csv_record,
         },
     );
@@ -196,6 +180,7 @@ sub query_data {
 
         say "INFO: Fetching and processing $step->{title}...";
 
+        # Step queries WDQS
         if ($step->{is_wdqs_step}) {
             my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
             my $response = $ua->post(WDQS_URL, {query => $sparql_query});
@@ -204,6 +189,8 @@ sub query_data {
             }
             $step->{post_processor}->() if exists $step->{post_processor};
         }
+
+        # Step queries other Wikimedia APIs via parallel processing
         else {
             my $progress;
             $progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
@@ -217,8 +204,8 @@ sub query_data {
             $pm->wait_all_children;
         }
 
-        if (@error_msgs) {
-            die join("\n", @error_msgs) . "\n";
+        if (@Error_Msgs) {
+            die join("\n", @Error_Msgs) . "\n";
         }
 
         if (exists $step->{set_helper_vars}) {
@@ -235,7 +222,7 @@ sub query_data {
 
 sub finalize_data {
     say 'INFO: Marshalling data structure into final format...';
-    while (my ($qid, $marker_data) = each %Data) {
+    foreach my $marker_data (values %Data) {
         if (
             $marker_data->{num_plaques} > 1 or
             scalar keys %{$marker_data->{details}} == 1
@@ -335,15 +322,15 @@ EOQ
 sub process_initial_data_csv_record {
 
     my $csv_record = shift;
-    my ($marker_qid, $lat, $lon, $lang_qid, $num_plaques) = @$csv_record;
+    my ($qid, $lat, $lon, $lang_qid, $num_plaques) = @$csv_record;
     $num_plaques += 0;
 
-    $Data{$marker_qid} //= {};
-    my $marker_data = $Data{$marker_qid};
+    $Data{$qid} //= {};
+    my $marker_data = $Data{$qid};
 
     if (exists $marker_data->{num_plaques}) {
         if ($marker_data->{num_plaques} != $num_plaques) {
-            push @error_msgs, "ERROR: [$marker_qid] Multiple values in number of plaques (P1114)";
+            log_error($qid, "Multiple values in number of plaques (P1114)");
             return;
         }
     }
@@ -353,7 +340,7 @@ sub process_initial_data_csv_record {
 
     if (exists $marker_data->{lat}) {
         if ($marker_data->{num_plaques} == 1) {
-            push @error_msgs, "ERROR: [$marker_qid] Multiple coordinates (P625) but only 1 plaque (P1114)";
+            log_error($qid, "Multiple coordinates (P625) but only 1 plaque (P1114)");
             return;
         }
         push @{$marker_data->{lat}}, $lat;
@@ -365,14 +352,14 @@ sub process_initial_data_csv_record {
     }
 
     if ($lang_qid and not exists LANGUAGE_CODE->{$lang_qid}) {
-        push @error_msgs, "ERROR: [$marker_qid] Unrecognized language ($lang_qid)";
+        log_error($qid, "Unrecognized language ($lang_qid)");
     }
     elsif ($lang_qid and $marker_data->{num_plaques} == 1) {
-        push @error_msgs, "ERROR: [$marker_qid] Coordinates (P625) has language (P518) but only 1 plaque (P1114)";
+        log_error($qid, "Coordinates (P625) has language (P518) but only 1 plaque (P1114)");
     }
     elsif (exists $marker_data->{details}) {
         if (exists $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}) {
-            push @error_msgs, "ERROR: [$marker_qid] Duplicate language (P518) for coordinates (P625)";
+            log_error($qid, "Duplicate language (P518) for coordinates (P625)");
         }
         else {
             $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}} = {};
@@ -389,6 +376,8 @@ sub process_initial_data_csv_record {
 
 # -------------------------------------------------------------------
 
+# Check that the number of coordinates matches the number of plaques
+# and if the number of coordinates is more than 1, average them
 sub post_process_initial_data {
     while (my ($qid, $marker_data) = each %Data) {
 
@@ -397,7 +386,7 @@ sub post_process_initial_data {
 
             my $num_plaques = $marker_data->{num_plaques};
             if ($num_coordinates != $num_plaques) {
-                push @error_msgs, "ERROR: [$qid] Number of coordinates (P625) does not match number of plaques (P1114)";
+                log_error($qid, "Number of coordinates (P625) does not match number of plaques (P1114)");
                 next;
             }
 
@@ -527,7 +516,7 @@ sub process_address_data_csv_record {
 
     my $csv_record = shift;
     my (
-        $marker_qid, $location_qid, $location_label,
+        $qid, $location_qid, $location_label,
         $street_address, $country, $directions,
         $admin0_qid, $admin0_label, $admin0_type,
         $admin1_qid, $admin1_label, $admin1_type,
@@ -545,7 +534,7 @@ sub process_address_data_csv_record {
         $admin_labels[$_] = ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]};
     }
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
     # Address generation logic matches the Historical Markers Map app
     my @address_parts;
@@ -617,11 +606,11 @@ sub process_address_data_csv_record {
     }
     if ($country ne 'Philippines') {
         push @address_parts, $country;
-        if (not OVERSEAS_MACRO_ADDRESS->{$marker_qid}) {
-            push @error_msgs, "ERROR: [$marker_qid] Foreign marker has no macro address";
+        if (not OVERSEAS_MACRO_ADDRESS->{$qid}) {
+            log_error($qid, "Overseas marker has no macro address");
             return;
         }
-        $marker_data->{macroAddress} = OVERSEAS_MACRO_ADDRESS->{$marker_qid};
+        $marker_data->{macroAddress} = OVERSEAS_MACRO_ADDRESS->{$qid};
         $marker_data->{region} = 'Overseas';
     }
     else {
@@ -631,7 +620,7 @@ sub process_address_data_csv_record {
     $full_address =~ s/(^|, )([^, ]*)(?:, \2)+(, |$)/$1$2$3/g;
 
     if (exists $marker_data->{address}) {
-        warn "WARNING: [$marker_qid] Multiple addresses";
+        warn "WARNING: [$qid] Multiple addresses";
         $marker_data->{address} .= " / $full_address" ;
     }
     else {
@@ -681,19 +670,19 @@ sub process_title_data_csv_record {
 
     my $csv_record = shift;
     my (
-        $marker_qid, $label,
+        $qid, $label,
         $title, $title_lang_code, $target_lang_qid,
         $subtitle, $has_no_title
     ) = @$csv_record;
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
-    if ($target_lang_qid and not exists LANGUAGE_CODE->{$target_lang_qid}) {
-        push @error_msgs, "ERROR: [$marker_qid] Unrecognized language ($target_lang_qid)";
+    if ($title_lang_code and not exists VALID_LANGUAGES->{$title_lang_code}) {
+        log_error($qid, "Unrecognized title language code ($title_lang_code)");
         return;
     }
-    if ($title_lang_code and not exists VALID_LANGUAGES->{$title_lang_code}) {
-        push @error_msgs, "ERROR: [$marker_qid] Unrecognized language ($title_lang_code)";
+    if ($target_lang_qid and not exists LANGUAGE_CODE->{$target_lang_qid}) {
+        log_error($qid, "Unrecognized title language item ($target_lang_qid)");
         return;
     }
     if ($has_no_title) {
@@ -702,7 +691,7 @@ sub process_title_data_csv_record {
             scalar keys %{$marker_data->{details}} > 0 and
             not $target_lang_qid
         ) {
-            push @error_msgs, "ERROR: [$marker_qid] Marker is stated as both having no title and having a title";
+            log_error($qid, "Marker is stated as both having no title and having a title");
             return;
         }
         if ($target_lang_qid) {
@@ -720,7 +709,7 @@ sub process_title_data_csv_record {
     }
     else {
         if (exists $marker_data->{has_no_title}) {
-            push @error_msgs, "ERROR: [$marker_qid] Marker is stated as both having no title and having a title";
+            log_error($qid, "Marker is stated as both having no title and having a title");
             return;
         }
         $marker_data->{details} = {} if not exists $marker_data->{details};
@@ -740,6 +729,7 @@ sub process_title_data_csv_record {
 
 # -------------------------------------------------------------------
 
+# Sanity-check number of languages and titles, and also generate name field
 sub post_process_title_data {
     while (my ($qid, $marker_data) = each %Data) {
 
@@ -749,11 +739,11 @@ sub post_process_title_data {
             $marker_data->{num_plaques} > 1 and
             scalar keys %{$marker_data->{details}} != $marker_data->{num_plaques}
         ) {
-            push @error_msgs, "ERROR: [$qid] Number of languages does not match number of plaques (P1114)";
+            log_error($qid, "Number of languages does not match number of plaques (P1114)");
             next;
         }
         if (scalar keys %{$marker_data->{details}} == 0) {
-            push @error_msgs, "ERROR: [$qid] Marker has no title information (P1476)";
+            log_error($qid, "Marker has no title information (P1476)");
             next;
         }
 
@@ -799,13 +789,13 @@ EOQ
 sub process_inscription_data_csv_record {
 
     my $csv_record = shift;
-    my ($marker_qid, $inscription, $lang_code, $has_no_inscription) = @$csv_record;
+    my ($qid, $inscription, $lang_code, $has_no_inscription) = @$csv_record;
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
     if ($has_no_inscription) {
         if (exists $marker_data->{has_no_title}) {
-            push @error_msgs, "ERROR: [$marker_qid] Marker has no title and inscription";
+            log_error($qid, "Marker has no title and inscription");
             return;
         }
         foreach my $l10n_detail (values %{$marker_data->{details}}) {
@@ -813,7 +803,7 @@ sub process_inscription_data_csv_record {
         }
     }
     else {
-        process_inscription($marker_qid, $inscription, $lang_code);
+        process_inscription($qid, $inscription, $lang_code);
     }
 
     return;
@@ -863,7 +853,7 @@ sub query_long_inscription {
             my ($lang_qid   ) = $template_text =~ /\|\s*langqid\s*=\s*(Q[0-9]+)/s;
             my ($inscription) = $template_text =~ /\|\s*inscription\s*=\s*(.+?)(?:\||$)/s;
             if (not exists LANGUAGE_CODE->{$lang_qid}) {
-                push @error_msgs, "ERROR: [$qid] Inscription is in an unrecognized language ($lang_qid)";
+                log_error($qid, "Inscription is in an unrecognized language ($lang_qid)");
                 return;
             }
             if (length $inscription <= WIKIDATA_MAX_STR_LENGTH) {
@@ -915,24 +905,24 @@ EOQ
 sub process_unveiling_data_csv_record {
 
     my $csv_record = shift;
-    my ($marker_qid, $date, $precision, $lang_qid) = @$csv_record;
+    my ($qid, $date, $precision, $lang_qid) = @$csv_record;
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
     if ($precision < 9 or 11 < $precision) {
-        push @error_msgs, "ERROR: [$marker_qid] Date has an unexpected precision";
+        log_error($qid, "Date (P571) has an unexpected precision");
     }
     if ($lang_qid) {
         if ($marker_data->{num_plaques} == 1) {
-            push @error_msgs, "ERROR: [$marker_qid] Date (P571) has a language (P518) but there is only 1 plaque (P1114)";
+            log_error($qid, "Date (P571) has a language (P518) but there is only 1 plaque (P1114)");
             return;
         }
         if (not exists $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}) {
-            push @error_msgs, "ERROR: [$marker_qid] Date (P571) applies an extra language (P518)";
+            log_error($qid, "Date (P571) targets an extra language (P518)");
             return;
         }
         if (exists $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}{date}) {
-            push @error_msgs, "ERROR: [$marker_qid] Date (P571) has a duplicate language (P518)";
+            log_error($qid, "Date (P571) has a duplicate language (P518)");
             return;
         }
         $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}{date} = substr($date, 0, $precision == 11 ? 10 : 4);
@@ -940,7 +930,7 @@ sub process_unveiling_data_csv_record {
     }
     else {
         if (exists $marker_data->{details}{date}) {
-            push @error_msgs, "ERROR: [$marker_qid] There is more than 1 date (P571)";
+            log_error($qid, "There is more than 1 date (P571)");
             return;
         }
         $marker_data->{date} = substr($date, 0, $precision == 11 ? 10 : 4);
@@ -983,12 +973,12 @@ EOQ
 sub process_photo_data_csv_record {
 
     my $csv_record = shift;
-    my ($marker_qid, $photo_filename, $lang_qid, $ordinal, $loc_photo_filename) = @$csv_record;
+    my ($qid, $photo_filename, $lang_qid, $ordinal, $loc_photo_filename) = @$csv_record;
 
     $photo_filename     = decode('UTF-8', uri_unescape($photo_filename    ));
     $loc_photo_filename = decode('UTF-8', uri_unescape($loc_photo_filename));
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
     if ($photo_filename) {
         my $photo_record = {
@@ -997,28 +987,28 @@ sub process_photo_data_csv_record {
         };
         if ($marker_data->{num_plaques} == 1) {
             if (exists $marker_data->{photo}) {
-                push @error_msgs, "ERROR: [$marker_qid] Multiple photos (P18) but there is only 1 plaque (P1114)";
+                log_error($qid, "Multiple photos (P18) but there is only 1 plaque (P1114)");
                 return;
             }
             $marker_data->{photo} = $photo_record;
         }
         else {
             if (not $lang_qid and not $ordinal) {
-                push @error_msgs, "ERROR: [$marker_qid] Missing language (P518) or ordinal (P1545) for marker with multiple plaques (P1114)";
+                log_error($qid, "Missing language (P518) or ordinal (P1545) for marker with multiple plaques (P1114)");
                 return;
             }
             if ($lang_qid) {
                 if (not exists LANGUAGE_CODE->{$lang_qid}) {
-                    push @error_msgs, "ERROR: [$marker_qid] Photo is in an unrecognized language ($lang_qid) (P518)";
+                    log_error($qid, "Photo is in an unrecognized language ($lang_qid) (P518)");
                     return;
                 }
                 my $lang_code = LANGUAGE_CODE->{$lang_qid};
                 if (not exists $marker_data->{details}{$lang_code}) {
-                    push @error_msgs, "ERROR: [$marker_qid] Photo is in an extra language ($lang_code) (P518)";
+                    log_error($qid, "Photo is in an extra language ($lang_code) (P518)");
                     return;
                 }
                 if (exists $marker_data->{details}{$lang_code}{photo}) {
-                    push @error_msgs, "ERROR: [$marker_qid] Duplicate photo language ($lang_code) (P518)";
+                    log_error($qid, "Duplicate photo language ($lang_code) (P518)");
                     return;
                 }
                 $marker_data->{details}{$lang_code}{photo} = $photo_record;
@@ -1033,7 +1023,7 @@ sub process_photo_data_csv_record {
     }
     elsif ($loc_photo_filename) {
         if (exists $marker_data->{locPhoto}) {
-            push @error_msgs, "ERROR: [$marker_qid] Multiple vicinity photos (P18 P3831 wd:Q16968816)";
+            log_error($qid, "Multiple vicinity photos (P18 P3831 wd:Q16968816)");
             return;
         }
         $marker_data->{locPhoto} = {
@@ -1189,11 +1179,11 @@ EOQ
 sub process_commemorates_data_csv_record {
 
     my $csv_record = shift;
-    my ($marker_qid, $label, $title) = @$csv_record;
+    my ($qid, $label, $title) = @$csv_record;
 
     $title = decode('UTF-8', uri_unescape($title)) =~ s/_/ /gr;
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
     $marker_data->{wikipedia} //= {};
     $marker_data->{wikipedia}{$label} = $label eq $title ? JSON::true : $title;
 
@@ -1219,8 +1209,8 @@ EOQ
 
 sub process_category_data_csv_record {
     my $csv_record = shift;
-    my ($marker_qid, $category) = @$csv_record;
-    $Data{$marker_qid}{commons} = $category;
+    my ($qid, $category) = @$csv_record;
+    $Data{$qid}{commons} = $category;
     return;
 }
 
@@ -1244,7 +1234,7 @@ sub parse_csv {
 
 sub process_inscription {
 
-    my $marker_qid  = shift;
+    my $qid         = shift;
     my $inscription = shift;
     my $lang_code   = shift;
 
@@ -1255,27 +1245,27 @@ sub process_inscription {
     $inscription =~ s{<br */?>\s*<br */?>}{</p><p>}g;
     $inscription = "<p>$inscription</p>";
 
-    my $marker_data = $Data{$marker_qid};
+    my $marker_data = $Data{$qid};
 
     if ($lang_code and not exists VALID_LANGUAGES->{$lang_code}) {
-        push @error_msgs, "ERROR: [$marker_qid] Inscription is in an unrecognized language ($lang_code)";
+        log_error($qid, "Inscription is in an unrecognized language ($lang_code)");
     }
     if (
         not exists $marker_data->{has_no_title} and
         $lang_code and
         not exists $marker_data->{details}{$lang_code}
     ) {
-        push @error_msgs, "ERROR: [$marker_qid] Inscription is in an extra language ($lang_code)";
+        log_error($qid, "Inscription is in an extra language ($lang_code)");
     }
     if (not exists $marker_data->{details}) {
         if (not exists $marker_data->{has_no_title}) {
-            push @error_msgs, "ERROR: [$marker_qid] Weird data inconsistency error";
+            log_error($qid, "Weird data inconsistency error");
         }
         $marker_data->{details} = {};
     }
     if (not exists $marker_data->{details}{$lang_code}) {
         if (not exists $marker_data->{has_no_title}) {
-            push @error_msgs, "ERROR: [$marker_qid] Weird data inconsistency error";
+            log_error($qid, "Weird data inconsistency error");
         }
         $marker_data->{details}{$lang_code} = { inscription => $inscription }
     }
@@ -1283,5 +1273,14 @@ sub process_inscription {
         $marker_data->{details}{$lang_code}{inscription} = $inscription;
     }
 
+    return;
+}
+
+# -------------------------------------------------------------------
+
+sub log_error {
+    my $qid       = shift;
+    my $error_msg = shift;
+    push @Error_Msgs, "ERROR: [$qid] $error_msg";
     return;
 }
