@@ -17,6 +17,7 @@ use Term::ProgressBar;
 use Text::CSV;
 use URI::Escape;
 
+## no critic (ProhibitConstantPragma)
 use constant {
     LANGUAGE_CODE             => {
         Q1860  => 'en',
@@ -77,6 +78,7 @@ use constant {
     },
 };
 use constant VALID_LANGUAGES => { map {($_, 1)} @{(ORDERED_LANGUAGES)} };
+## use critic (ProhibitConstantPragma)
 
 binmode STDIN , ':encoding(UTF-8)';
 binmode STDOUT, ':encoding(UTF-8)';
@@ -176,14 +178,20 @@ my $ua = LWP::UserAgent->new;
 $ua->default_header(Accept => 'text/csv');
 
 foreach my $step (@steps) {
+    process_step($step);
+}
+
+sub process_step {
+
+    my $step = shift;
 
     say "INFO: Fetching and processing $step->{title}...";
 
     if ($step->{is_wdqs_step}) {
         my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
         my $response = $ua->post(WDQS_URL, {query => $sparql_query});
-        foreach (parse_csv($response->decoded_content)) {
-            $step->{csv_record_processor}->(@$_);
+        foreach my $csv_record (parse_csv($response->decoded_content)) {
+            $step->{csv_record_processor}->($csv_record);
         }
         $step->{post_processor}->() if exists $step->{post_processor};
     }
@@ -209,6 +217,8 @@ foreach my $step (@steps) {
         my $qid_list = join(' ', map { "wd:$_" } keys %Data);
         $sparql_values = "VALUES ?marker { $qid_list }";
     }
+
+    return;
 }
 
 
@@ -300,11 +310,9 @@ EOQ
 
 sub process_initial_data_csv_record {
 
-    my $marker_qid  = shift;
-    my $lat         = shift;
-    my $lon         = shift;
-    my $lang_qid    = shift;
-    my $num_plaques = (shift @_) + 0;
+    my $csv_record = shift;
+    my ($marker_qid, $lat, $lon, $lang_qid, $num_plaques) = @$csv_record;
+    $num_plaques += 0;
 
     $Data{$marker_qid} //= {};
     my $marker_data = $Data{$marker_qid};
@@ -351,6 +359,8 @@ sub process_initial_data_csv_record {
             LANGUAGE_CODE->{$lang_qid} => {},
         };
     }
+
+    return;
 }
 
 sub post_process_initial_data {
@@ -372,6 +382,7 @@ sub post_process_initial_data {
         $marker_data->{lat} = sprintf('%.5f', $marker_data->{lat}[0]) + 0;
         $marker_data->{lon} = sprintf('%.5f', $marker_data->{lon}[0]) + 0;
     }
+    return;
 }
 
 sub get_address_data_sparql_query {
@@ -484,26 +495,16 @@ EOQ
 
 sub process_address_data_csv_record {
 
-    my $marker_qid        = shift;
-    my $location_qid      = shift;
-    my $location_label    = shift;
-    my $street_address    = shift;
-    my $country           = shift;
-    my $directions        = shift;
-    my $admin0_qid        = shift;
-    my $admin0_label      = shift;
-    my $admin0_type       = shift;
-    my $admin1_qid        = shift;
-    my $admin1_label      = shift;
-    my $admin1_type       = shift;
-    my $admin2_qid        = shift;
-    my $admin2_label      = shift;
-    my $admin2_type       = shift;
-    my $admin3_qid        = shift;
-    my $admin3_label      = shift;
-    my $admin3_type       = shift;
-    my $island_label      = shift;
-    my $island_admin_type = shift;
+    my $csv_record = shift;
+    my (
+        $marker_qid, $location_qid, $location_label,
+        $street_address, $country, $directions,
+        $admin0_qid, $admin0_label, $admin0_type,
+        $admin1_qid, $admin1_label, $admin1_type,
+        $admin2_qid, $admin2_label, $admin2_type,
+        $admin3_qid, $admin3_label, $admin3_type,
+        $island_label, $island_admin_type
+    ) = @$csv_record;
 
     my @admin_qids   = ($admin0_qid  , $admin1_qid  , $admin2_qid  , $admin3_qid  );
     my @admin_labels = ($admin0_label, $admin1_label, $admin2_label, $admin3_label);
@@ -608,6 +609,8 @@ sub process_address_data_csv_record {
     }
 
     $marker_data->{locDesc} = $directions if $directions;
+
+    return;
 }
 
 sub get_title_data_sparql_query {
@@ -642,13 +645,12 @@ EOQ
 
 sub process_title_data_csv_record {
 
-    my $marker_qid      = shift;
-    my $label           = shift;
-    my $title           = shift;
-    my $title_lang_code = shift;
-    my $target_lang_qid = shift;
-    my $subtitle        = shift;
-    my $has_no_title    = shift;
+    my $csv_record = shift;
+    my (
+        $marker_qid, $label,
+        $title, $title_lang_code, $target_lang_qid,
+        $subtitle, $has_no_title
+    ) = @$csv_record;
 
     my $marker_data = $Data{$marker_qid};
 
@@ -698,6 +700,8 @@ sub process_title_data_csv_record {
         };
         $marker_data->{details}{$current_lang}{subtitle} = $subtitle if $subtitle;
     }
+
+    return;
 }
 
 sub post_process_title_data {
@@ -730,6 +734,7 @@ sub post_process_title_data {
             }
         }
     }
+    return;
 }
 
 sub get_inscription_data_sparql_query {
@@ -753,10 +758,8 @@ EOQ
 
 sub process_inscription_data_csv_record {
 
-    my $marker_qid         = shift;
-    my $inscription        = shift;
-    my $lang_code          = shift;
-    my $has_no_inscription = shift;
+    my $csv_record = shift;
+    my ($marker_qid, $inscription, $lang_code, $has_no_inscription) = @$csv_record;
 
     my $marker_data = $Data{$marker_qid};
 
@@ -772,6 +775,8 @@ sub process_inscription_data_csv_record {
     else {
         process_inscription($marker_qid, $inscription, $lang_code);
     }
+
+    return;
 }
 
 sub query_long_inscription {
@@ -793,9 +798,9 @@ sub query_long_inscription {
     $pm->start($qid) and return;
 
     say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
-    my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => 'application/json');
-    my $response = $ua->post(WIKIDATA_API_URL, {
+    my $forked_ua = LWP::UserAgent->new;
+    $forked_ua->default_header(Accept => 'application/json');
+    my $response = $forked_ua->post(WIKIDATA_API_URL, {
         format => 'json',
         action => 'query',
         prop   => 'revisions',
@@ -826,15 +831,18 @@ sub query_long_inscription {
         }
         $pm->finish(0, \@return_data);
     }
+
+    return;
 }
 
-sub process_long_inscription {
-    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
+sub process_long_inscription {  ## no critic (ProhibitManyArgs)
+    my (undef, undef, $qid, undef, undef, $data_ref) = @_;
     return if not defined $data_ref;
     foreach my $inscription_datum (@$data_ref) {
         my ($lang_code, $inscription) = @$inscription_datum;
-        process_inscription($ident, $inscription, $lang_code);
+        process_inscription($qid, $inscription, $lang_code);
     }
+    return;
 }
 
 sub get_unveiling_data_sparql_query {
@@ -858,10 +866,8 @@ EOQ
 
 sub process_unveiling_data_csv_record {
 
-    my $marker_qid = shift;
-    my $date       = shift;
-    my $precision  = shift;
-    my $lang_qid   = shift;
+    my $csv_record = shift;
+    my ($marker_qid, $date, $precision, $lang_qid) = @$csv_record;
 
     my $marker_data = $Data{$marker_qid};
 
@@ -891,6 +897,8 @@ sub process_unveiling_data_csv_record {
         }
         $marker_data->{date} = substr($date, 0, $precision == 11 ? 10 : 4);
     }
+
+    return;
 }
 
 sub get_photo_data_sparql_query {
@@ -922,11 +930,11 @@ EOQ
 
 sub process_photo_data_csv_record {
 
-    my $marker_qid         = shift;
-    my $photo_filename     = decode('UTF-8', uri_unescape(shift @_));
-    my $lang_qid           = shift;
-    my $ordinal            = shift;
-    my $loc_photo_filename = decode('UTF-8', uri_unescape(shift @_));
+    my $csv_record = shift;
+    my ($marker_qid, $photo_filename, $lang_qid, $ordinal, $loc_photo_filename) = @$csv_record;
+
+    $photo_filename     = decode('UTF-8', uri_unescape($photo_filename    ));
+    $loc_photo_filename = decode('UTF-8', uri_unescape($loc_photo_filename));
 
     my $marker_data = $Data{$marker_qid};
 
@@ -981,6 +989,8 @@ sub process_photo_data_csv_record {
             credit => undef,
         };
     }
+
+    return;
 }
 
 sub query_marker_photos_metadata {
@@ -1020,6 +1030,8 @@ sub query_marker_photos_metadata {
             $pm->finish(0, ['locPhoto', $metadata]);
         }
     }
+
+    return;
 }
 
 sub get_photo_metadata {
@@ -1029,9 +1041,9 @@ sub get_photo_metadata {
 
     say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
 
-    my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => 'application/json');
-    my $response = $ua->post(COMMONS_API_URL, {
+    my $forked_ua = LWP::UserAgent->new;
+    $forked_ua->default_header(Accept => 'application/json');
+    my $response = $forked_ua->post(COMMONS_API_URL, {
         format => 'json',
         action => 'query',
         prop   => 'imageinfo',
@@ -1065,9 +1077,9 @@ sub get_photo_metadata {
     return "$width|$height|$author$license";
 }
 
-sub process_photo_metadata {
+sub process_photo_metadata {  ## no critic (ProhibitManyArgs)
 
-    my ($pid, $exit_code, $qid, $exit_signal, $core_dump, $data_ref) = @_;
+    my (undef, undef, $qid, undef, undef, $data_ref) = @_;
     return if not defined $data_ref;
 
     # Parse the metadata
@@ -1092,6 +1104,8 @@ sub process_photo_metadata {
     $photo_data->{width } = $width  + 0;
     $photo_data->{height} = $height + 0;
     $photo_data->{credit} = $credit;
+
+    return;
 }
 
 sub get_commemorates_data_sparql_query {
@@ -1112,13 +1126,16 @@ EOQ
 
 sub process_commemorates_data_csv_record {
 
-    my $marker_qid = shift;
-    my $label      = shift;
-    my $title      = decode('UTF-8', uri_unescape(shift @_)) =~ s/_/ /gr;
+    my $csv_record = shift;
+    my ($marker_qid, $label, $title) = @$csv_record;
+
+    $title = decode('UTF-8', uri_unescape($title)) =~ s/_/ /gr;
 
     my $marker_data = $Data{$marker_qid};
     $marker_data->{wikipedia} //= {};
     $marker_data->{wikipedia}{$label} = $label eq $title ? JSON::true : $title;
+
+    return;
 }
 
 sub get_category_data_sparql_query {
@@ -1135,8 +1152,10 @@ EOQ
 }
 
 sub process_category_data_csv_record {
-    my $marker_data = $Data{shift @_};
-    $marker_data->{commons} = shift;
+    my $csv_record = shift;
+    my ($marker_qid, $category) = @$csv_record;
+    $Data{$marker_qid}{commons} = $category;
+    return;
 }
 
 
