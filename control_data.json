@@ -1,0 +1,543 @@
+{
+"Q23854678": {
+  "name": "Dr. Jose Rizal",
+  "date": "2003",
+  "details": {
+    "de": {
+      "photo": {
+        "file": "José Rizal historical marker in Berlin.jpg",
+        "credit": "Eugene Alvin Villar (seav)",
+        "width": 2500,
+        "height": 2576
+      },
+      "text": {
+        "title": "Dr. Jose Rizal",
+        "subtitle": "(1861–1896)",
+        "inscription": "<p>Nationalheld der Philippinen, war Arzt und Dichter. Als Reformer und Kritiker der Kolonialregierung Spanien stand Rizal für den gewaltlosen Widerstand und vollendete in diesem Haus seinen stark autobiographisch geprägten Roman, Noli me tangere.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "José Rizal": true,
+    "Noli Me Tángere": "Noli Me Tángere (novel)"
+  },
+  "commons": "Jos%C3%A9_Rizal_historical_marker_in_Berlin",
+  "lat": 52.51380,
+  "lon": 13.38659,
+  "region": "Overseas",
+  "macroAddress": "Berlin, Germany",
+  "address": "Jägerstraße 71, Mitte, Berlin, Germany",
+  "locDesc": "The historical marker is located on the wall immediately to the right of the building’s entrance.",
+  "locPhoto": {
+    "file": "Building where Jose Rizal marker in Berlin is located 03.jpg",
+    "credit": "Carlo Joseph Moskito {CC BY‑SA 4.0}",
+    "width": 4128,
+    "height": 3096
+  }
+},
+"Q43375893": {
+  "name": "First Shot in Filipino–American War",
+  "date": true,
+  "details": {
+    "en": {
+      "photo": {
+        "file": "First Shot in Filipino-American War Marker.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 4.0}",
+        "width": 640,
+        "height": 480
+      },
+      "text": {
+        "title": "First Shot in Filipino–American War",
+        "inscription": "<p>Here, at 9:00 o’clock in the evening of February 4th, 1899, Private William Grayson of the First Nebraska Volunteers fired the shot that started the Filipino–American War.</p>"
+      },
+      "date": "1941"
+    },
+    "tl": {
+      "photo": {
+        "file": "Unang Putok sa Digmaang Filipino-Amerikano Marker.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 4.0}",
+        "width": 392,
+        "height": 400
+      },
+      "text": {
+        "title": "Unang Putok sa Digmaang Filipino–Amerikano",
+        "inscription": "<p>Dito noong ganap na 9:00 sa gabi ng 4 Pebrero 1899 nagpaputok si Private William Grayson ng First Nebraska Volunteers, putok na nagpasiklab sa Digmaang Filipino–Amerikano.</p>"
+      },
+      "date": "2004"
+    }
+  },
+  "wikipedia": {
+    "Philippine–American War": true
+  },
+  "lat": 14.60407,
+  "lon": 121.01535,
+  "region": "Metro Manila",
+  "macroAddress": "Santa Mesa, Manila",
+  "address": "Silencio Street cor. Sociego Street, Santa Mesa, Manila, Metro Manila",
+  "locDesc": "The historical markers are located on separate granite-clad concrete mountings.",
+  "locPhoto": {
+    "file" : "First shot location of the Filipino-American War historical marker.jpg",
+    "credit" : "IJVelas {CC BY‑SA 3.0}",
+    "width" : 3872,
+    "height" : 2592
+  }
+},
+"Q36164177": {
+  "name": "International Rice Research Institute",
+  "date": "2010-04-14",
+  "details": {
+    "en": {
+      "photo": {
+        "file": "IRRI historical marker 2.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 4.0}",
+        "width": 1029,
+        "height": 1408
+      },
+      "text": {
+        "title": "International Rice Research Institute",
+        "inscription": "<p>Established through the cooperation of Ford and Rockefeller Foundations and the Philippine Government to launch an intensive research and development for new methods of rice production, 1960. Dr. Robert F. Chandler, First Director General, 1960–1971. Played a major role in initiating the green revolution in Asia. Successfully bred a new type of rice, IR 8 or Miracle Rice that improved the production of rice in the Philippines, 29 November 1966. It is a major world center of scientific research on rice.</p>"
+      }
+    },
+    "tl": {
+      "photo": {
+        "file": "IRRI historical marker.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 4.0}",
+        "width": 1023,
+        "height": 1412
+      },
+      "text": {
+        "title": "International Rice Research Institute",
+        "inscription": "<p>Naitatag mula sa pagtutulungan ng Ford at Rockefeller Foundation at ng Pamahalaan ng Pilipinas upang maglunsad ng malawakang pananaliksik at pagpapaunlad ng makabagong pamamaraan sa produksyon ng palay, 1960. Dr. Robert F. Chandler, Jr., unang direktor heneral, 1960–1971. Kabalikat sa paglulunsad ng Green Revolution sa Asya. Matagumpay na nakapaglikha ng bagong uri ng palay, IR8 o Miracle Rice, na nakapagpataas ng produksyon ng palay sa Pilipinas, 29 Nobyembre 1966. Pandaigdigang sentro ng pag-aaral sa agham ng pagtatanim ng palay.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "International Rice Research Institute": true
+  },
+  "lat": 14.16883,
+  "lon": 121.25524,
+  "region": "Calabarzon",
+  "macroAddress": "Los Baños, Laguna",
+  "address": "International Rice Research Institute, Pili Drive, Los Baños, Laguna"
+},
+"Q28927536": {
+  "name": "Site Where Rizal Landed",
+  "date": "1989",
+  "details": {
+    "photo": {
+      "file": "Dito Lumunsad si Rizal historical marker.jpg",
+      "credit": "National Historical Commission of the Philippines (NHCP)",
+      "width": 958,
+      "height": 1600
+    },
+    "text": {
+      "en": {
+        "title": "Site Where Rizal Landed",
+        "inscription": "<p>On this beach of Sta. Cruz, Jose Rizal landed at 7:00 o’clock PM on July 17, 1892 to begin the life an exile in Dapitan. With Captain Delgras and three artillery men, they walked through Sta. Cruz street with a “Farol de Combate” to the Casa Real where he was presented to Don Ricardo Carnicero, Spanish military governor of the district.</p>"
+      },
+      "tl": {
+        "title": "Dito Lumunsad si Rizal",
+        "inscription": "<p>Sa dalampasigang ito ng Sta. Cruz, lumunsad si Jose Rizal noong ika-7 ng gabi, ika-17 ng Hulyo, 1892 upang simulan ang buhay-tapon sa Dapitan. Kasama ni Kapitan Delgras ang tatlong kawal ng artilyerya ay naglakad sina Rizal sa daang patungo sa Casa Real. Dito siya ipinakilala kay Don Ricardo Carnicero, ang Kastilang Gobernador Militar ng purok.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "José Rizal": true
+  },
+  "lat": 8.65627,
+  "lon": 123.41920,
+  "region": "Zamboanga Peninsula",
+  "macroAddress": "Dapitan, Zamboanga del Norte",
+  "address": "Sunset Boulevard, Dapitan, Zamboanga del Norte"
+},
+"Q28927264": {
+  "name": "José Rizal at Dapitan Church",
+  "date": "1989",
+  "details": {
+    "photo": {
+      "file": "Saint James Church historical marker.jpg",
+      "credit": "National Historical Commission of the Philippines (NHCP)",
+      "width": 1177,
+      "height": 1600
+    },
+    "text": {
+      "en": {
+        "inscription": "<p>On this spot of Saint James Church constructed by the Jesuits in 1871, Jose Rizal stood while hearing mass every Sunday during his exile in Dapitan in 1892–1896.</p>"
+      },
+      "tl": {
+        "inscription": "<p>Sa pook na ito ng Simbahan ng San Jaime na ipinagawa ng mga Heswita noong 1871, tumayo si Jose Rizal tuwing Linngo upang makinig ng misa sa buong panahon ng kanyang pagkapatapon sa Dapitan, 1892–1896.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "José Rizal": true
+  },
+  "lat": 8.65460,
+  "lon": 123.42497,
+  "region": "Zamboanga Peninsula",
+  "macroAddress": "Dapitan, Zamboanga del Norte",
+  "address": "Dapitan Church, Dapitan, Zamboanga del Norte"
+},
+"Q41962281": {
+  "name": "Gomburza execution site",
+  "date": true,
+  "details": {
+    "en": {
+      "photo": {
+        "file": "Gomburza execution site historical marker (English).jpg",
+        "credit": "Titopao {CC BY‑SA 4.0}",
+        "width": 1068,
+        "height": 736
+      },
+      "text": {
+        "inscription": "<p>On this spot, on February 17, 1872, Fathers Jose G. Burgos, Mariano C. Gomes and Jacinto R. Zamora, were executed by strangulation for alleged complicity with the military uprising in Cavite on January 20, 1872.</p>"
+      },
+      "date": "1998"
+    },
+    "es": {
+      "photo": {
+        "file": "Gomburza execution site historical marker (Spanish).jpg",
+        "credit": "Photo: Ramon FVelasquez; perspective correction: Eugene Alvin Villar (seav) {CC BY‑SA 3.0}",
+        "width": 3000,
+        "height": 4087
+      },
+      "text": {
+        "inscription": "<p>Supuestos complicados en motin militar de Cavite, 20 Enero 1872, Padre Jose A. Burgos, Padre Mariano Gomez, Padre Jacinto Zamora Martires de la libertad de Filipinas, ejecutados en garrote vil en este lugar, 17 Febrero 1872.</p>"
+      },
+      "date": "1953"
+    }
+  },
+  "wikipedia": {
+    "Gomburza": true,
+    "Mariano Gómez": true,
+    "José Burgos": true,
+    "Jacinto Zamora": true
+  },
+  "lat": 14.58243,
+  "lon": 120.97732,
+  "region": "Metro Manila",
+  "macroAddress": "Ermita, Manila",
+  "address": "Rizal Park, Roxas Boulevard cor. Padre Burgos Avenue, Ermita, Manila, Metro Manila",
+  "locDesc": "The historical markers are located on opposite sides of the monument marking the execution site with the English marker on the western side and the Spanish marker on the eastern side.",
+  "locPhoto": {
+    "file" : "20161015 Titopao Gomburza Martyrdom Site.jpg",
+    "credit" : "Titopao {CC BY‑SA 4.0}",
+    "width" : 1365,
+    "height" : 2048
+  }
+},
+"Q24025942": {
+  "name": "Memorare",
+  "date": "1998-02-17",
+  "details": {
+    "en": {
+      "photo": {
+        "file": "Gomburza burial Memorare historical marker.jpg",
+        "credit": "Photo: Carlo Joseph Moskito; perspective correction: Eugene Alvin Villar (seav) {CC BY‑SA 3.0}",
+        "width": 2300,
+        "height": 3053
+      },
+      "text": {
+        "title": "Memorare",
+        "inscription": "<p>The mortal remains of the three martyred priests, Fathers Jose A. Burgos, Mariano C. Gomes and Jacinto R. Zamora, were buried in this hallowed ground after their execution on 17 February 1872 for complicity in the Cavite Mutiny.</p><p>This marker was unveiled by His Excellency Fidel V. Ramos, President, Republic of the Philippines, February 17, 1998 on the occasion of the martyrdom of the three priests.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Gomburza": true,
+    "Mariano Gómez": true,
+    "José Burgos": true,
+    "Jacinto Zamora": true
+  },
+  "lat": 14.58090,
+  "lon": 120.98870,
+  "region": "Metro Manila",
+  "macroAddress": "Paco, Manila",
+  "address": "Paco Park, Gen. Luna Street cor. Padre Faura Street, Paco, Manila, Metro Manila",
+  "locDesc": "The historical marker is located at the base of a cross memorial.",
+  "locPhoto": {
+    "file": "GOMBURZA Burial Site.JPG",
+    "credit": "Carlo Joseph Moskito {CC BY‑SA 3.0}",
+    "width": 3264,
+    "height": 2448
+  }
+},
+"Q50383807": {
+  "name": "Honoria Acosta Sison",
+  "date": "1988-12-20",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "HonoriaAcostaSison HistoricalMarker Manila.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 3.0}",
+        "width": 417,
+        "height": 608
+      },
+      "text": {
+        "title": "Honoria Acosta Sison",
+        "inscription": "<p>Unang babaeng doktor na Pilipino, siyentipiko at nanguna sa pananaliksik sa obstetrisya. Isinilang sa Calasiao, Pangasinan, Disyembre 30, 1888. Nagkamit ng titulong Doktor sa Medisina, Women’s Medical College of Pennsylvania, Estados Unidos, 1909. Ginawaran ng titulong Doktor sa Agham, Philippine Women’s University, 1940 at Women’s Medical College of Pennsylvania, 1950, kapwa honoris causa. Nagtatag at unang pangulo ng Asociacion de Damas de Filipinas at ng Philippine Obstetrical and Gynecological Society; kagawad, Philippine National Research Council at Philippine Historical Society; at isa sa mga nagtatag at unang pangalawang pangulo ng Philippine Academy of Science and Humanities. Tumanggap ng mga Medalyang Pampangulo para sa kanyang mga pananaliksik sa panggagamot, 1951 at Gawad Pampangulo dahil sa kanyang kontribusyon sa Kilusang Kababaihan ng Pilipinas, 1955. Itinalagang professor emeritus sa obstetrisya at hinekolohiya ng Lupon ng mga Rehente ng University of the Philippines, 1955. Namatay, 1970.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Honoria Acosta-Sison": true
+  },
+  "lat": 14.57230,
+  "lon": 120.99063,
+  "region": "Metro Manila",
+  "macroAddress": "Malate, Manila",
+  "address": "1906 Taft Avenue, Malate, Manila, Metro Manila"
+},
+"Q43325425": {
+  "name": "Punong Himpilan ng Hukbong Pampulisya ng Maynila",
+  "date": "2017-08-07",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "Punong Himpilan ng Hukbong Pampulisya ng Maynila NHCP Historical Marker.jpg",
+        "credit": "Ryomaandres {CC BY‑SA 4.0}",
+        "width": 1729,
+        "height": 2577
+      },
+      "text": {
+        "title": "Punong Himpilan ng Hukbong Pampulisya ng Maynila",
+        "inscription": "<p>Itinatag bilang unang pulisyang sibil ng Maynila sa bisa ng proklamasyon ni Gobernador William H. Taft, 5 Agosto 1901. Nagsilbing mga punong himpilan ang Escuela Municipal, Intramuros, 1901–1904; Bulwagang Lungsod ng Maynila, 1904–1946; Lumang Kulungan ng Bilibid, 1946–1949; at ang kasalukuyang himpilan mula 1949. Itinayo ang gusaling ito bilang South Police Station bago ang Ikalawang Digmaang Pandaigdig; pinagkublian ng hukbong Hapones at naging lugar ng matinding labanan, 14–20 Pebrero 1945; at isinaayos sa pamamagitan ng Philippine Rehabilitation Act at itinalagang punong himpilan ng Hukbong Pampulisya ng Maynila, 1949.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Manila Police District": true
+  },
+  "lat": 14.58339,
+  "lon": 120.98646,
+  "region": "Metro Manila",
+  "macroAddress": "Ermita, Manila",
+  "address": "United Nations Avenue cor. San Marcelino Street, Ermita, Manila, Metro Manila"
+},
+"Q24715649": {
+  "name": "Natalio Enriquez House",
+  "date": "2008-05-14",
+  "details": {
+    "en": {
+      "photo": {
+        "file": "Sariaya,Mansion,TownCenterjf0265 15.JPG",
+        "credit": "Ramon FVelasquez {CC BY‑SA 3.0}",
+        "width": 3456,
+        "height": 4608
+      },
+      "text": {
+        "title": "Natalio Enriquez House",
+        "inscription": "<p>Declared a heritage house by the National Historical Institute 14 May 2008</p>"
+      }
+    }
+  },
+  "lat": 13.96331,
+  "lon": 121.52454,
+  "region": "Calabarzon",
+  "macroAddress": "Sariaya, Quezon",
+  "address": "Gen. Luna Street cor. Rizal Street, Sariaya, Quezon"
+},
+"Q24702663": {
+  "name": "Ika-400 Taong Pagdiriwang ng Pagiging Kristiyano ng Bayan ng Gumaca",
+  "date": "1982",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "Marker San Diego de Alcala Park Gumaca, Quezon.JPG",
+        "credit": "Nickrds09 {CC BY‑SA 3.0}",
+        "width": 4000,
+        "height": 3000
+      },
+      "text": {
+        "title": "Ika-400 Taong Pagdiriwang ng Pagiging Kristiyano ng Bayan ng Gumaca"
+      }
+    }
+  },
+  "wikipedia": {
+    "Gumaca": true
+  },
+  "lat": 13.93525,
+  "lon": 122.08428,
+  "region": "Calabarzon",
+  "macroAddress": "Gumaca, Quezon",
+  "address": "Km. 193 Maharlika Highway, Brgy. Rosario, Gumaca, Quezon",
+  "locDesc": "The historical marker is located on the pedestal of a statue of St. Didacus of Alcalá.",
+  "locPhoto": {
+    "file": "San Diego de Alcala Park Gumaca, Quezon.JPG",
+    "credit": "Nickrds09 {CC BY‑SA 3.0}",
+    "width": 2154,
+    "height": 4000
+  }
+},
+"Q46993491": {
+  "name": "First Rizal Monument",
+  "date": "1961",
+  "details": {
+    "en": {
+      "text": {
+        "inscription": "<p>First Rizal Monument in the Philippines. Erected by voluntary contributions of the People of Camarines Norte, led by Lt. Col. Ildefonso Alegre and Lt. Col. Antonio Sanz of the Revolutionary Army. Unveiled on 30 December 1898.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Jose Rizal Monument": "First José Rizal Monument (Daet)"
+  },
+  "lat": 14.11319,
+  "lon": 122.95455,
+  "region": "Bicol Region",
+  "macroAddress": "Daet, Camarines Norte",
+  "address": "Rizal Park, Magallanes Iraya Street cor. Justo Lukban Street, Daet, Camarines Norte",
+  "locDesc": "The historical marker is located at the base of the monument.",
+  "locPhoto": {
+    "file": "Oldest Jose Rizal Monument in Daet, Camarines Norte by Gina Meneses.jpg",
+    "credit": "Firehorse {CC BY‑SA 3.0}",
+    "width": 1944,
+    "height": 2896
+  }
+},
+"Q24702612": {
+  "name": "Kutang San Diego",
+  "date": "1981-03-17",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "Kutang San Diego Marker Gumaca, Quezon.JPG",
+        "credit": "Nickrds09 {CC BY‑SA 3.0}",
+        "width": 1944,
+        "height": 2592
+      },
+      "text": {
+        "title": "Kutang San Diego",
+        "subtitle": "Gumaca, Quezon",
+        "inscription": "<p>Yari sa tinabtab na bato at may bubong na tisa, ang kutang ito ang tanging nalalabi sa ipinatayo ng mga Kastila sa pangangasiwa ng mga paring Pransiskano noong huling bahagi ng ika-18 siglo upang ipagtanggol ang bayan laban sa pagsalakay ng mga tulisang-dagat. Sa pagitan ng dalawang moog, si P. Francisco Costa ay nagpatayo noong 1850 ng matibay na pader na yari sa apog at bato upang ipangsanggalang ang bayan buhay sa hanging mula sa hilagang-silangan.</p>"
+      }
+    }
+  },
+  "lat": 13.92294,
+  "lon": 122.10028,
+  "region": "Calabarzon",
+  "macroAddress": "Gumaca, Quezon",
+  "address": "Lakan Bugtali Boulevard, Gumaca, Quezon"
+},
+"Q37713611": {
+  "name": "Parola ng Cape Engaño",
+  "date": "2009",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "Cape Engano Lighthouse Historical Marker (cropped).jpg",
+        "credit": "Ervin Malicdem {CC BY‑SA 4.0}",
+        "width": 1588,
+        "height": 1870
+      },
+      "text": {
+        "title": "Parola ng Cape Engaño",
+        "inscription": "<p>Idinisenyo ni Inhenyero Magin Pers y Pers ayon sa plano ng mga parola sa Cape Bojeador, Faro de Punta Capones at Faro de la Isla de Cabra na may tore at mga pabelyon, 1 Hunyo 1887. Ipinatayo, 21 Setyembre 1888. Natapos, 31 Disyembre 1892. Isa sa mga natatanging halimbawa ng arkitektura at nalalabing parolang itinayo noong panahon ng mga Espanyol.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Cape Engaño Lighthouse": true
+  },
+  "lat": 18.57977,
+  "lon": 122.1377,
+  "region": "Cagayan Valley",
+  "macroAddress": "Santa Ana, Cagayan",
+  "address": "Cape Engaño Lighthouse, Palaui Island, Santa Ana, Cagayan",
+  "locDesc": "The historical marker is located at the base of the lighthouse facing the southern entrance to the compound.",
+  "locPhoto": {
+    "file": "Cape Engano Lighthouse Facade.jpg",
+    "credit": "Ervin Malicdem {CC BY‑SA 4.0}",
+    "width": 3000,
+    "height": 4000
+  }
+},
+"Q54486817": {
+  "name": "Hospicio de San Jose",
+  "date": "1977",
+  "details": {
+    "tl": {
+      "photo": {
+        "file": "Hospicio de San Jose historical marker.jpeg",
+        "credit": "Roel Balingit {CC BY‑SA 4.0}",
+        "width": 1836,
+        "height": 3264
+      },
+      "text": {
+        "title": "Hospicio de San Jose",
+        "subtitle": "(1782)",
+        "inscription": "<p>Itinatag noong 1782 ng mag-asawang Francisco Gomez Enriquez para sa mahihirap at mahihina ang isip. Mula sa Pandakan ay inilipat sa Intramuros, pagkatapos ay sa Binundok, at katapus-tapusa’y sa munting pulong ito noong 1835–40. Ang institusyong ito ay kumakalinga sa mahihirap at sa walang mag-aruga. Ang pagkalinga sa mga sanggol ay sinimulan noong 1905. Mula noong 1905 hanggang 1917, ang mga batang may pagkakasalang nagawa ay ipinadadala dito ng pamahalaan. Mula noong 1865, ang mga <u>Sisters of Charity</u> ay siya nang namahala sa institusyong ito.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Hospicio de San Jose": true
+  },
+  "lat": 14.59078,
+  "lon": 120.98764,
+  "region": "Metro Manila",
+  "macroAddress": "San Miguel, Manila",
+  "address": "Hospicio de San Jose, Ayala Bridge, Isla de Convalecencia, San Miguel, Manila, Metro Manila",
+  "locDesc": "The historical marker is located on the left corner of the portico of the main entrance of the complex.",
+  "locPhoto": {
+    "file": "Hospicio de San Jose historical marker - location.jpeg",
+    "credit": "Roel Balingit {CC BY‑SA 4.0}",
+    "width": 1836,
+    "height": 3264
+  }
+},
+"Q63383130": {
+  "name": "Ang Bayan ng Alimodian",
+  "date": "1981",
+  "details": {
+    "tl": {
+      "text": {
+        "title": "Ang Bayan ng Alimodian",
+        "inscription": "<p>Itinatag ng mga paring Agustino noong 1754. Dating nasa ilalim ng pangangasiwa ng bayan ng Leon noong 1904. Ito ay nagging nagsasariling bayan noong 1918.</p><p>Ilang daang mga mamamayan ang pinatay ng mga Hapon sa Barangay Taban. Sa Barangay Balabago naman naganap ang unang pagtambang sa mga kaaway ng katutubong pangkat sa Panay.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Alimodian": true
+  },
+  "lat": 10.81588,
+  "lon": 122.4316,
+  "region": "Western Visayas",
+  "macroAddress": "Alimodian, Iloilo",
+  "address": "Alvior Street cor. Alesoan–Alimodian Road, Alimodian, Iloilo",
+  "locDesc": "The historical marker is located on a concrete mount at the southeast corner of the town plaza facing the street intersection."
+},
+"Q24068225": {
+  "name": "Basilica of Our Lady of Charity",
+  "date": "1982",
+  "details": {
+    "en": {
+      "photo": {
+        "file": "Basilica of Our Lady of Charity historical marker.jpg",
+        "credit": "Photo: Judgefloro; perspective correction: Eugene Alvin Villar (seav)",
+        "width": 2500,
+        "height": 2853
+      },
+      "text": {
+        "title": "Basilica of Our Lady of Charity",
+        "inscription": "<p>Located in La Union’s oldest town, Agoo. Parish and town founded in 1578 by Franciscan Frs. Juan Bautista Lucarelli and Sebastian de Baeza. Original church in Barangay Nagrugcan. Improved by Augustinian Fr. Saturnino Franco; Belfry built by Frs. Casimiro Melgosa and Aquilino Garcia. All destroyed by 1892 earthquake.</p><p>Built on this site was the next church where the long-venerated image of Our Lady of Charity was canonically crowned by Apostolic Nuncio Salvatore Sinno on 1 May 1971 by rescript of Pope Paul VI. Demolished in 1975 for a new shrine. Cornerstone laid on 8 Sept. 1975, feast of Our Lady’s Nativity, by Archbishop Mariano A. Madriaga, native of the town. Construction started 8 Jan. 1976 from donations by the faithful led by a son of the town, Tourism minister Jose D. Aspiras and his family and encouragement of Bishop Victorino Ligot of San Fernando de La Union Diocese.</p><p>Consecrated Marian shrine on 8 Dec. 1978, feast of the Immaculate Conception by Sebastiano Cardinal Baggio, Prefect of the Sacred Congregation of Bishops, with President Ferdinand E. Marcos and first lady Imelda Romualdez Marcos in Attendance.</p><p>Elevated to rank of Basilica Minore by Pope John Paul II, on 15 July 1982, on petition of Bishop Salvador Lazo through Archbishop Bruno Torpigliani, Apostolic Nuncio to the Philipines. Dedicated as such by Sebastiano Cardinal Baggio on 8 Dec. 1982.</p><p>Msgr. Benito P. Sison, first rector; Msgr. Jose G. Tongson, present rector; Tomas M. Asprer, provincial governor; Jose Luis M. Aspiras, municipal mayor; Ignacio Palma Bautista, architect; Bernardo M. Vergara, Edmundo Tolentino, Jose Manantan and Bernabe Corpuz, supervising engineers.</p>"
+      }
+    }
+  },
+  "wikipedia": {
+    "Agoo Basilica": "Basilica Minore of Our Lady of Charity"
+  },
+  "lat": 16.32294,
+  "lon": 120.36743,
+  "region": "Ilocos Region",
+  "macroAddress": "Agoo, La Union",
+  "address": "Agoo Basilica, Manila North Road cor. Cases Boulevard, Agoo, La Union",
+  "locDesc": "The historical marker is located on the right-side wall of the recessed main entrance of the basilica.",
+  "locPhoto": {
+    "file": "Agoo Basilica entrance.jpg",
+    "credit": "Judgefloro",
+    "width": 2064,
+    "height": 2736
+  }
+}
+}
