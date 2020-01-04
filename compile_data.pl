@@ -793,7 +793,7 @@ sub query_long_inscription {
 
     say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
     my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => "application/sparql-results+json");
+    $ua->default_header(Accept => "application/json");
     my $response = $ua->post(WIKIDATA_API_URL, {
         format => "json",
         action => "query",
@@ -1158,19 +1158,19 @@ sub process_inscription {
 
 sub get_photo_data {
 
-    my $qid   = shift;
-    my $photo = shift;
+    my $qid            = shift;
+    my $photo_filename = shift;
 
-    say "INFO: [$qid] Fetching credit for $photo" if $Log_Level > 1;
+    say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
 
     my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => "application/sparql-results+json");
+    $ua->default_header(Accept => "application/json");
     my $response = $ua->post(COMMONS_API_URL, {
         format => "json",
         action => "query",
         prop   => "imageinfo",
         iiprop => "extmetadata|size",
-        titles => "File:" . $photo,
+        titles => "File:" . $photo_filename,
     });
     my $response_raw = decode_json($response->decoded_content);
     my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
