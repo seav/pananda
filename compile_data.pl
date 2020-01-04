@@ -89,203 +89,225 @@ my $Log_Level = 1;
 my %Data;
 my @error_msgs;
 
-my @steps = (
-    {
-        title                => 'initial marker data with coordinates',
-        is_wdqs_step         => 1,
-        sparql_query         => get_initial_data_spaql_query(),
-
-        csv_record_processor => \&process_initial_data_csv_record,
-
-        # Check that the number of coordinates matches the number of plaques
-        # and if the number of coordinates is more than 1, average them
-        post_processor       => \&post_process_initial_data,
-
-        set_helper_vars      => 1,
-    },
-    {
-        title                => 'address data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_address_data_sparql_query(),
-
-        csv_record_processor => \&process_address_data_csv_record,
-    },
-    {
-        title                => 'title data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_title_data_sparql_query(),
-
-        csv_record_processor => \&process_title_data_csv_record,
-
-        # Sanity-check number of languages and titles, and also generate name field
-        post_processor       => \&post_process_title_data,
-    },
-    {
-        title                => 'short inscription data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_inscription_data_sparql_query(),
-
-        csv_record_processor => \&process_inscription_data_csv_record,
-    },
-    {
-        title                => 'long inscription data',
-        is_wdqs_step         => undef,
-
-        process_datum        => \&query_long_inscription,
-        callback             => \&process_long_inscription,
-    },
-    {
-        title                => 'unveiling date data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_unveiling_data_sparql_query(),
-
-        csv_record_processor => \&process_unveiling_data_csv_record,
-    },
-    {
-        title                => 'photo data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_photo_data_sparql_query(),
-
-        csv_record_processor => \&process_photo_data_csv_record,
-    },
-    {
-        title                => 'photo metadata',
-        is_wdqs_step         => undef,
-
-        process_datum        => \&query_marker_photos_metadata,
-        callback             => \&process_photo_metadata,
-    },
-    {
-        title                => 'commemorates-Wikipedia data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_commemorates_data_sparql_query(),
-
-        csv_record_processor => \&process_commemorates_data_csv_record,
-    },
-    {
-        title                => 'Commons category data',
-        is_wdqs_step         => 1,
-        sparql_query         => get_category_data_sparql_query(),
-
-        csv_record_processor => \&process_category_data_csv_record,
-    },
-);
-
 my $num_markers;
 my $sparql_values;
 
 my $ua = LWP::UserAgent->new;
 $ua->default_header(Accept => 'text/csv');
 
-foreach my $step (@steps) {
-    process_step($step);
-}
+query_data();
+finalize_data();
+check_against_control_data();
 
-sub process_step {
+write_file('data.json', encode_json(\%Data));
+say 'INFO: Data successfully compiled!';
 
-    my $step = shift;
+exit;
 
-    say "INFO: Fetching and processing $step->{title}...";
+# ===================================================================
+# MAIN SUBROUTINES
+# ===================================================================
 
-    if ($step->{is_wdqs_step}) {
-        my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
-        my $response = $ua->post(WDQS_URL, {query => $sparql_query});
-        foreach my $csv_record (parse_csv($response->decoded_content)) {
-            $step->{csv_record_processor}->($csv_record);
+sub query_data {
+
+    my @steps = (
+        {
+            title                => 'initial marker data with coordinates',
+            is_wdqs_step         => 1,
+            sparql_query         => get_initial_data_spaql_query(),
+
+            csv_record_processor => \&process_initial_data_csv_record,
+
+            # Check that the number of coordinates matches the number of plaques
+            # and if the number of coordinates is more than 1, average them
+            post_processor       => \&post_process_initial_data,
+
+            set_helper_vars      => 1,
+        },
+        {
+            title                => 'address data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_address_data_sparql_query(),
+
+            csv_record_processor => \&process_address_data_csv_record,
+        },
+        {
+            title                => 'title data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_title_data_sparql_query(),
+
+            csv_record_processor => \&process_title_data_csv_record,
+
+            # Sanity-check number of languages and titles, and also generate name field
+            post_processor       => \&post_process_title_data,
+        },
+        {
+            title                => 'short inscription data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_inscription_data_sparql_query(),
+
+            csv_record_processor => \&process_inscription_data_csv_record,
+        },
+        {
+            title                => 'long inscription data',
+            is_wdqs_step         => undef,
+
+            process_datum        => \&query_long_inscription,
+            callback             => \&process_long_inscription,
+        },
+        {
+            title                => 'unveiling date data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_unveiling_data_sparql_query(),
+
+            csv_record_processor => \&process_unveiling_data_csv_record,
+        },
+        {
+            title                => 'photo data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_photo_data_sparql_query(),
+
+            csv_record_processor => \&process_photo_data_csv_record,
+        },
+        {
+            title                => 'photo metadata',
+            is_wdqs_step         => undef,
+
+            process_datum        => \&query_marker_photos_metadata,
+            callback             => \&process_photo_metadata,
+        },
+        {
+            title                => 'commemorates-Wikipedia data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_commemorates_data_sparql_query(),
+
+            csv_record_processor => \&process_commemorates_data_csv_record,
+        },
+        {
+            title                => 'Commons category data',
+            is_wdqs_step         => 1,
+            sparql_query         => get_category_data_sparql_query(),
+
+            csv_record_processor => \&process_category_data_csv_record,
+        },
+    );
+
+    foreach my $step (@steps) {
+
+        say "INFO: Fetching and processing $step->{title}...";
+
+        if ($step->{is_wdqs_step}) {
+            my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
+            my $response = $ua->post(WDQS_URL, {query => $sparql_query});
+            foreach my $csv_record (parse_csv($response->decoded_content)) {
+                $step->{csv_record_processor}->($csv_record);
+            }
+            $step->{post_processor}->() if exists $step->{post_processor};
         }
-        $step->{post_processor}->() if exists $step->{post_processor};
-    }
-    else {
-        my $progress;
-        $progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
-        my $pm = Parallel::ForkManager->new(32);
-        $pm->run_on_finish($step->{callback});
-        my $num_markers_processed = 0;
-        while (my ($qid, $marker_data) = each %Data) {
-            $progress->update(++$num_markers_processed) if $Log_Level == 1;
-            $step->{process_datum}->($pm, $qid, $marker_data);
+        else {
+            my $progress;
+            $progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
+            my $pm = Parallel::ForkManager->new(32);
+            $pm->run_on_finish($step->{callback});
+            my $num_markers_processed = 0;
+            while (my ($qid, $marker_data) = each %Data) {
+                $progress->update(++$num_markers_processed) if $Log_Level == 1;
+                $step->{process_datum}->($pm, $qid, $marker_data);
+            }
+            $pm->wait_all_children;
         }
-        $pm->wait_all_children;
-    }
 
-    if (@error_msgs) {
-        die join("\n", @error_msgs) . "\n";
-    }
+        if (@error_msgs) {
+            die join("\n", @error_msgs) . "\n";
+        }
 
-    if (exists $step->{set_helper_vars}) {
-        $num_markers = scalar keys %Data;
-        my $qid_list = join(' ', map { "wd:$_" } keys %Data);
-        $sparql_values = "VALUES ?marker { $qid_list }";
+        if (exists $step->{set_helper_vars}) {
+            $num_markers = scalar keys %Data;
+            my $qid_list = join(' ', map { "wd:$_" } keys %Data);
+            $sparql_values = "VALUES ?marker { $qid_list }";
+        }
     }
 
     return;
 }
 
+# -------------------------------------------------------------------
 
-say 'INFO: Marshalling data structure into final format...';
-while (my ($qid, $marker_data) = each %Data) {
-    if (
-        $marker_data->{num_plaques} > 1 or
-        scalar keys %{$marker_data->{details}} == 1
-    ) {
-        if (ref($marker_data->{photo}) eq 'ARRAY') {
-            shift @{$marker_data->{photo}};
-        }
-        foreach my $lang_code (keys %{$marker_data->{details}}) {
-            my $hash_ref = $marker_data->{details}{$lang_code};
-            $hash_ref->{text} = {};
-            foreach my $key (qw/title subtitle inscription/) {
-                $hash_ref->{text}{$key} = $hash_ref->{$key} if exists $hash_ref->{$key};
-                delete $hash_ref->{$key};
+sub finalize_data {
+    say 'INFO: Marshalling data structure into final format...';
+    while (my ($qid, $marker_data) = each %Data) {
+        if (
+            $marker_data->{num_plaques} > 1 or
+            scalar keys %{$marker_data->{details}} == 1
+        ) {
+            if (ref($marker_data->{photo}) eq 'ARRAY') {
+                shift @{$marker_data->{photo}};
             }
-            if (
-                $marker_data->{num_plaques} == 1 or
-                ref($marker_data->{photo}) eq 'ARRAY'
-            ) {
-                $hash_ref->{photo} = $marker_data->{photo} if exists $marker_data->{photo};
-                delete $marker_data->{photo};
+            foreach my $lang_code (keys %{$marker_data->{details}}) {
+                my $hash_ref = $marker_data->{details}{$lang_code};
+                $hash_ref->{text} = {};
+                foreach my $key (qw/title subtitle inscription/) {
+                    $hash_ref->{text}{$key} = $hash_ref->{$key} if exists $hash_ref->{$key};
+                    delete $hash_ref->{$key};
+                }
+                if (
+                    $marker_data->{num_plaques} == 1 or
+                    ref($marker_data->{photo}) eq 'ARRAY'
+                ) {
+                    $hash_ref->{photo} = $marker_data->{photo} if exists $marker_data->{photo};
+                    delete $marker_data->{photo};
+                }
             }
         }
-    }
-    else {
-        my %text;
-        foreach my $lang_code (keys %{$marker_data->{details}}) {
-            $text{$lang_code} = $marker_data->{details}{$lang_code};
-            delete $marker_data->{details}{$lang_code};
+        else {
+            my %text;
+            foreach my $lang_code (keys %{$marker_data->{details}}) {
+                $text{$lang_code} = $marker_data->{details}{$lang_code};
+                delete $marker_data->{details}{$lang_code};
+            }
+            $marker_data->{details}{text} = \%text;
+            $marker_data->{details}{photo} = $marker_data->{photo} if exists $marker_data->{photo};
+            delete $marker_data->{photo};
         }
-        $marker_data->{details}{text} = \%text;
-        $marker_data->{details}{photo} = $marker_data->{photo} if exists $marker_data->{photo};
-        delete $marker_data->{photo};
+        delete $marker_data->{num_plaques};
+        delete $marker_data->{has_no_title} if exists $marker_data->{has_no_title};
     }
-    delete $marker_data->{num_plaques};
-    delete $marker_data->{has_no_title} if exists $marker_data->{has_no_title};
+    return;
 }
 
-say 'INFO: Comparing with control data...';
+# -------------------------------------------------------------------
 
-my $control_json = read_file('control_data.json');
-my $control_data = decode_json($control_json);
-my @control_qids = keys %$control_data;
+sub check_against_control_data {
 
-my %actual_data;
-@actual_data{@control_qids} = @Data{@control_qids};
+    say 'INFO: Comparing with control data...';
 
-my $expected_json = JSON->new->utf8->pretty->canonical->encode($control_data);
-my $actual_json   = JSON->new->utf8->pretty->canonical->encode(\%actual_data);
+    my $control_json = read_file('control_data.json');
+    my $control_data = decode_json($control_json);
+    my @control_qids = keys %$control_data;
 
-write_file('tmp_expected.json', $expected_json);
-write_file('tmp_actual.json'  , $actual_json  );
+    my %actual_data;
+    @actual_data{@control_qids} = @Data{@control_qids};
 
-my $diff = `diff tmp_expected.json tmp_actual.json`;
-if ($diff) {
-    say $diff;
-    die 'ERROR: Mismatch with control data';
+    my $expected_json = JSON->new->utf8->pretty->canonical->encode($control_data);
+    my $actual_json   = JSON->new->utf8->pretty->canonical->encode(\%actual_data);
+
+    write_file('tmp_expected.json', $expected_json);
+    write_file('tmp_actual.json'  , $actual_json  );
+
+    my $diff = `diff tmp_expected.json tmp_actual.json`;
+    if ($diff) {
+        say $diff;
+        die 'ERROR: Mismatch with control data';
+    }
+
+    unlink('tmp_expected.json', 'tmp_actual.json');
+
+    return;
 }
 
-unlink('tmp_expected.json', 'tmp_actual.json');
-write_file('data.json', encode_json(\%Data));
-say 'INFO: Data successfully compiled!';
-
+# ===================================================================
+# QUERY_DATA SUBROUTINES
+# ===================================================================
 
 sub get_initial_data_spaql_query {
     return << 'EOQ';
@@ -307,6 +329,8 @@ SELECT ?markerQid ?lat ?lon ?langQid ?quantity WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_initial_data_csv_record {
 
@@ -363,6 +387,8 @@ sub process_initial_data_csv_record {
     return;
 }
 
+# -------------------------------------------------------------------
+
 sub post_process_initial_data {
     while (my ($qid, $marker_data) = each %Data) {
 
@@ -384,6 +410,8 @@ sub post_process_initial_data {
     }
     return;
 }
+
+# ===================================================================
 
 sub get_address_data_sparql_query {
     return << 'EOQ';
@@ -492,6 +520,8 @@ WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_address_data_csv_record {
 
@@ -613,6 +643,8 @@ sub process_address_data_csv_record {
     return;
 }
 
+# ===================================================================
+
 sub get_title_data_sparql_query {
     return << 'EOQ';
 SELECT ?markerQid ?markerLabel ?title ?titleLangCode ?targetLangQid ?subtitle ?noValue
@@ -642,6 +674,8 @@ WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_title_data_csv_record {
 
@@ -704,6 +738,8 @@ sub process_title_data_csv_record {
     return;
 }
 
+# -------------------------------------------------------------------
+
 sub post_process_title_data {
     while (my ($qid, $marker_data) = each %Data) {
 
@@ -737,6 +773,8 @@ sub post_process_title_data {
     return;
 }
 
+# ===================================================================
+
 sub get_inscription_data_sparql_query {
     return << 'EOQ';
 SELECT ?markerQid ?inscription ?langCode ?noValue
@@ -755,6 +793,8 @@ WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_inscription_data_csv_record {
 
@@ -778,6 +818,8 @@ sub process_inscription_data_csv_record {
 
     return;
 }
+
+# ===================================================================
 
 sub query_long_inscription {
 
@@ -835,6 +877,8 @@ sub query_long_inscription {
     return;
 }
 
+# -------------------------------------------------------------------
+
 sub process_long_inscription {  ## no critic (ProhibitManyArgs)
     my (undef, undef, $qid, undef, undef, $data_ref) = @_;
     return if not defined $data_ref;
@@ -844,6 +888,8 @@ sub process_long_inscription {  ## no critic (ProhibitManyArgs)
     }
     return;
 }
+
+# ===================================================================
 
 sub get_unveiling_data_sparql_query {
     return << 'EOQ';
@@ -863,6 +909,8 @@ WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_unveiling_data_csv_record {
 
@@ -901,6 +949,8 @@ sub process_unveiling_data_csv_record {
     return;
 }
 
+# ===================================================================
+
 sub get_photo_data_sparql_query {
     return << 'EOQ';
 SELECT ?markerQid ?photoFilename ?langQid ?ordinal ?vicinityPhotoFilename
@@ -927,6 +977,8 @@ WHERE {
 }
 EOQ
 }
+
+# -------------------------------------------------------------------
 
 sub process_photo_data_csv_record {
 
@@ -993,6 +1045,8 @@ sub process_photo_data_csv_record {
     return;
 }
 
+# ===================================================================
+
 sub query_marker_photos_metadata {
 
     my $pm          = shift;
@@ -1033,6 +1087,8 @@ sub query_marker_photos_metadata {
 
     return;
 }
+
+# -------------------------------------------------------------------
 
 sub get_photo_metadata {
 
@@ -1077,6 +1133,8 @@ sub get_photo_metadata {
     return "$width|$height|$author$license";
 }
 
+# -------------------------------------------------------------------
+
 sub process_photo_metadata {  ## no critic (ProhibitManyArgs)
 
     my (undef, undef, $qid, undef, undef, $data_ref) = @_;
@@ -1108,6 +1166,8 @@ sub process_photo_metadata {  ## no critic (ProhibitManyArgs)
     return;
 }
 
+# ===================================================================
+
 sub get_commemorates_data_sparql_query {
     return << 'EOQ';
 SELECT ?markerQid ?commemoratesLabel ?articleTitle
@@ -1124,6 +1184,8 @@ WHERE {
 EOQ
 }
 
+# -------------------------------------------------------------------
+
 sub process_commemorates_data_csv_record {
 
     my $csv_record = shift;
@@ -1138,6 +1200,8 @@ sub process_commemorates_data_csv_record {
     return;
 }
 
+# ===================================================================
+
 sub get_category_data_sparql_query {
     return << 'EOQ';
 SELECT ?markerQid ?category
@@ -1151,6 +1215,8 @@ WHERE {
 EOQ
 }
 
+# -------------------------------------------------------------------
+
 sub process_category_data_csv_record {
     my $csv_record = shift;
     my ($marker_qid, $category) = @$csv_record;
@@ -1158,6 +1224,9 @@ sub process_category_data_csv_record {
     return;
 }
 
+# ===================================================================
+# UTILITY SUBROUTINES
+# ===================================================================
 
 sub parse_csv {
     my $input = shift;
@@ -1170,6 +1239,8 @@ sub parse_csv {
     shift @output;  # Discard header row
     return @output;
 }
+
+# -------------------------------------------------------------------
 
 sub process_inscription {
 
