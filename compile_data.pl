@@ -87,11 +87,197 @@ my $Log_Level = 1;
 my %Data;
 my @error_msgs;
 
-my $ua = LWP::UserAgent->new;
+my @steps = (
+    {
+        title                => 'initial marker data with coordinates',
+        is_wdqs_step         => 1,
+        sparql_query         => get_initial_data_spaql_query(),
 
-say "INFO: Fetching and processing initial marker data with coordinates...";
+        csv_record_processor => \&process_initial_data_csv_record,
+
+        # Check that the number of coordinates matches the number of plaques
+        # and if the number of coordinates is more than 1, average them
+        post_processor       => \&post_process_initial_data,
+
+        set_helper_vars      => 1,
+    },
+    {
+        title                => 'address data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_address_data_sparql_query(),
+
+        csv_record_processor => \&process_address_data_csv_record,
+    },
+    {
+        title                => 'title data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_title_data_sparql_query(),
+
+        csv_record_processor => \&process_title_data_csv_record,
+
+        # Sanity-check number of languages and titles, and also generate name field
+        post_processor       => \&post_process_title_data,
+    },
+    {
+        title                => 'short inscription data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_inscription_data_sparql_query(),
+
+        csv_record_processor => \&process_inscription_data_csv_record,
+    },
+    {
+        title                => 'long inscription data',
+        is_wdqs_step         => undef,
+
+        process_datum        => \&query_long_inscription,
+        callback             => \&process_long_inscription,
+    },
+    {
+        title                => 'unveiling date data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_unveiling_data_sparql_query(),
+
+        csv_record_processor => \&process_unveiling_data_csv_record,
+    },
+    {
+        title                => 'photo data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_photo_data_sparql_query(),
+
+        csv_record_processor => \&process_photo_data_csv_record,
+    },
+    {
+        title                => 'photo metadata',
+        is_wdqs_step         => undef,
+
+        process_datum        => \&query_photo_metadata,
+        callback             => \&process_photo_metadata,
+    },
+    {
+        title                => 'commemorates-Wikipedia data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_commemorates_data_sparql_query(),
+
+        csv_record_processor => \&process_commemorates_data_csv_record,
+    },
+    {
+        title                => 'Commons category data',
+        is_wdqs_step         => 1,
+        sparql_query         => get_category_data_sparql_query(),
+
+        csv_record_processor => \&process_category_data_csv_record,
+    },
+);
+
+my $num_markers;
+my $sparql_values;
+
+my $ua = LWP::UserAgent->new;
 $ua->default_header(Accept => "text/csv");
-my $response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+
+foreach my $step (@steps) {
+
+    say "INFO: Fetching and processing $step->{title}...";
+
+    if ($step->{is_wdqs_step}) {
+        my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
+        my $response = $ua->post(WDQS_URL, {query => $sparql_query});
+        foreach (parse_csv($response->decoded_content)) {
+            $step->{csv_record_processor}->(@$_);
+        }
+        $step->{post_processor}->() if exists $step->{post_processor};
+    }
+    else {
+        my $progress;
+        $progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
+        my $pm = Parallel::ForkManager->new(32);
+        $pm->run_on_finish($step->{callback});
+        my $num_markers_processed = 0;
+        while (my ($qid, $marker_data) = each %Data) {
+            $progress->update(++$num_markers_processed) if $Log_Level == 1;
+            $step->{process_datum}->($pm, $qid, $marker_data);
+        }
+        $pm->wait_all_children;
+    }
+
+    if (@error_msgs) {
+        die join("\n", @error_msgs) . "\n";
+    }
+
+    if (exists $step->{set_helper_vars}) {
+        $num_markers = scalar keys %Data;
+        $sparql_values = "VALUES ?marker { " . join(" ", map { "wd:" . $_ } keys %Data) . " }";
+    }
+}
+
+
+say "INFO: Marshalling data structure into final format...";
+while (my ($qid, $marker_data) = each %Data) {
+    if (
+        $marker_data->{num_plaques} > 1 or
+        scalar keys %{$marker_data->{details}} == 1
+    ) {
+        if (ref($marker_data->{photo}) eq "ARRAY") {
+            shift @{$marker_data->{photo}};
+        }
+        foreach my $lang_code (keys %{$marker_data->{details}}) {
+            my $hash_ref = $marker_data->{details}{$lang_code};
+            $hash_ref->{text} = {};
+            foreach my $key (qw/title subtitle inscription/) {
+                $hash_ref->{text}{$key} = $hash_ref->{$key} if exists $hash_ref->{$key};
+                delete $hash_ref->{$key};
+            }
+            if (
+                $marker_data->{num_plaques} == 1 or
+                ref($marker_data->{photo}) eq "ARRAY"
+            ) {
+                $hash_ref->{photo} = $marker_data->{photo} if exists $marker_data->{photo};
+                delete $marker_data->{photo};
+            }
+        }
+    }
+    else {
+        my %text;
+        foreach my $lang_code (keys %{$marker_data->{details}}) {
+            $text{$lang_code} = $marker_data->{details}{$lang_code};
+            delete $marker_data->{details}{$lang_code};
+        }
+        $marker_data->{details}{text} = \%text;
+        $marker_data->{details}{photo} = $marker_data->{photo} if exists $marker_data->{photo};
+        delete $marker_data->{photo};
+    }
+    delete $marker_data->{num_plaques};
+    delete $marker_data->{has_no_title} if exists $marker_data->{has_no_title};
+}
+
+say "INFO: Comparing with control data...";
+
+my $control_json = read_file("control_data.json");
+my $control_data = decode_json($control_json);
+my @control_qids = keys %$control_data;
+
+my %actual_data;
+@actual_data{@control_qids} = @Data{@control_qids};
+
+my $expected_json = JSON->new->utf8->pretty->canonical->encode($control_data);
+my $actual_json   = JSON->new->utf8->pretty->canonical->encode(\%actual_data);
+
+write_file("tmp_expected.json", $expected_json);
+write_file("tmp_actual.json"  , $actual_json  );
+
+my $diff = `diff tmp_expected.json tmp_actual.json`;
+if ($diff) {
+    say $diff;
+    die "ERROR: Mismatch with control data";
+}
+
+unlink("tmp_expected.json", "tmp_actual.json");
+write_file("data.json", encode_json(\%Data));
+say "INFO: Data successfully compiled!";
+
+
+sub get_initial_data_spaql_query {
+    return << 'EOQ';
 SELECT ?marker ?lat ?lon ?part ?quantity WHERE {
   ?marker wdt:P31 wd:Q21562164 ;
           p:P625 ?coordStatement .
@@ -101,16 +287,19 @@ SELECT ?marker ?lat ?lon ?part ?quantity WHERE {
   OPTIONAL { ?coordStatement pq:P518 ?part }
   FILTER NOT EXISTS { ?coordStatement pq:P582 ?endTime }
   OPTIONAL { ?marker wdt:P1114 ?quantity }
-  FILTER (!isBLANK(?coord)) .
+  FILTER (!isBlank(?coord)) .
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_initial_data_csv_record {
 
-    my ($marker_qid, $lat, $lon, $lang_qid, $num_plaques) = @$_;
-    $marker_qid = get_last_uri_path($marker_qid);
-    $lang_qid   = get_last_uri_path($lang_qid  );
-    $num_plaques += 0 if $num_plaques;
+    my $marker_qid  = get_last_uri_path(shift @_);
+    my $lat         = shift;
+    my $lon         = shift;
+    my $lang_qid    = get_last_uri_path(shift @_);
+    my $num_plaques = shift;
+    $num_plaques = $num_plaques ? $num_plaques + 0 : 1;
 
     $Data{$marker_qid} //= {};
     my $marker_data = $Data{$marker_qid};
@@ -118,17 +307,17 @@ foreach (parse_csv($response->decoded_content)) {
     if (exists $marker_data->{num_plaques}) {
         if ($marker_data->{num_plaques} != $num_plaques) {
             push @error_msgs, "ERROR: [$marker_qid] Multiple values in number of plaques (P1114)";
-            next;
+            return;
         }
     }
     else {
-        $marker_data->{num_plaques} = $num_plaques || 1;
+        $marker_data->{num_plaques} = $num_plaques;
     }
 
     if (exists $marker_data->{lat}) {
         if ($marker_data->{num_plaques} == 1) {
             push @error_msgs, "ERROR: [$marker_qid] Multiple coordinates (P625) but only 1 plaque (P1114)";
-            next;
+            return;
         }
         push @{$marker_data->{lat}}, $lat;
         push @{$marker_data->{lon}}, $lon;
@@ -159,40 +348,35 @@ foreach (parse_csv($response->decoded_content)) {
     }
 }
 
-# Average and sanity-check coordinates and languages
-while (my ($qid, $marker_data) = each %Data) {
-    if (@{$marker_data->{lat}} > 1 and @{$marker_data->{lat}} != $marker_data->{num_plaques}) {
-        push @error_msgs, "ERROR: [$qid] Number of coordinates (P625) does not match number of plaques (P1114)";
-        next;
-    }
-    if (@{$marker_data->{lat}} > 1) {
-        $marker_data->{lat} = sprintf("%.5f", sum(@{$marker_data->{lat}}) / $marker_data->{num_plaques}) + 0;
-        $marker_data->{lon} = sprintf("%.5f", sum(@{$marker_data->{lon}}) / $marker_data->{num_plaques}) + 0;
-    }
-    else {
+sub post_process_initial_data {
+    while (my ($qid, $marker_data) = each %Data) {
+
+        my $num_coordinates = @{$marker_data->{lat}};
+        if ($num_coordinates > 1) {
+
+            my $num_plaques = $marker_data->{num_plaques};
+            if ($num_coordinates != $num_plaques) {
+                push @error_msgs, "ERROR: [$qid] Number of coordinates (P625) does not match number of plaques (P1114)";
+                next;
+            }
+
+            $marker_data->{lat} = [sum(@{$marker_data->{lat}}) / $num_plaques];
+            $marker_data->{lon} = [sum(@{$marker_data->{lon}}) / $num_plaques];
+        }
+
         $marker_data->{lat} = sprintf("%.5f", $marker_data->{lat}[0]) + 0;
         $marker_data->{lon} = sprintf("%.5f", $marker_data->{lon}[0]) + 0;
     }
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
-
-
-my $num_markers = scalar keys %Data;
-
-# Construct SPARQL VALUES clause listing all valid marker QIDs
-my $sparql_values = "VALUES ?marker { " . join(" ", map { "wd:" . $_ } keys %Data) . " }";
-
-say "INFO: Fetching and processing address data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_address_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?location ?locationLabel ?address ?countryLabel ?directions
        ?admin0 ?admin0Label ?admin0Type ?admin1 ?admin1Label ?admin1Type
        ?admin2 ?admin2Label ?admin2Type ?admin3 ?admin3Label ?admin3Type
        ?islandLabel ?islandAdminType
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker wdt:P17 ?country .
   OPTIONAL { ?marker wdt:P6375 ?address }
   OPTIONAL { ?marker wdt:P276 ?location }
@@ -264,8 +448,7 @@ WHERE {
   OPTIONAL {
     ?marker wdt:P706 ?island .
     FILTER EXISTS { ?island wdt:P31/wdt:P279* wd:Q23442 }
-    ?island wdt:P131 ?islandAdmin .
-    ?islandAdmin wdt:P31 ?islandAdminType .
+    ?island wdt:P131/wdt:P31 ?islandAdminType .
     FILTER (
       ?islandAdminType = wd:Q104157   ||
       ?islandAdminType = wd:Q29946056 ||
@@ -277,21 +460,35 @@ WHERE {
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
 }
 EOQ
+}
 
-PROCESS_ADDR: foreach (parse_csv($response->decoded_content)) {
+sub process_address_data_csv_record {
 
-    my (
-        $marker_qid, $location_qid, $location_label, $street_address, $country, $directions,
-        $admin0_qid, $admin0_label, $admin0_type, $admin1_qid, $admin1_label, $admin1_type,
-        $admin2_qid, $admin2_label, $admin2_type, $admin3_qid, $admin3_label, $admin3_type,
-        $island_label, $island_admin_type,
-    ) = @$_;
-    $marker_qid        = get_last_uri_path($marker_qid       );
-    $location_qid      = get_last_uri_path($location_qid     );
-    $island_admin_type = get_last_uri_path($island_admin_type);
+    my $marker_qid        = get_last_uri_path(shift @_);
+    my $location_qid      = get_last_uri_path(shift @_);
+    my $location_label    = shift;
+    my $street_address    = shift;
+    my $country           = shift;
+    my $directions        = shift;
+    my $admin0_qid        = shift;
+    my $admin0_label      = shift;
+    my $admin0_type       = shift;
+    my $admin1_qid        = shift;
+    my $admin1_label      = shift;
+    my $admin1_type       = shift;
+    my $admin2_qid        = shift;
+    my $admin2_label      = shift;
+    my $admin2_type       = shift;
+    my $admin3_qid        = shift;
+    my $admin3_label      = shift;
+    my $admin3_type       = shift;
+    my $island_label      = shift;
+    my $island_admin_type = get_last_uri_path(shift @_);
+
     my @admin_qids   = ($admin0_qid  , $admin1_qid  , $admin2_qid  , $admin3_qid  );
     my @admin_labels = ($admin0_label, $admin1_label, $admin2_label, $admin3_label);
     my @admin_types  = ($admin0_type , $admin1_type , $admin2_type , $admin3_type );
+
     foreach (0..3) {
         $admin_qids [$_] = get_last_uri_path($admin_qids [$_]);
         $admin_types[$_] = get_last_uri_path($admin_types[$_]);
@@ -299,16 +496,17 @@ PROCESS_ADDR: foreach (parse_csv($response->decoded_content)) {
             $admin_labels[$_] = ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]};
         }
     }
+
     my $marker_data = $Data{$marker_qid};
 
     # Address generation logic matches the Historical Markers Map app
     my @address_parts;
     my @macro_address_parts;
-    next if $location_qid and exists(SKIP_ADDRESS_HAVING->{$location_qid});
+    return if $location_qid and exists(SKIP_ADDRESS_HAVING->{$location_qid});
     push @address_parts, $location_label if $location_label and not exists SKIPPED_ADDRESS_LABELS->{$location_qid};
     push @address_parts, $street_address if $street_address;
     foreach my $level (0..3) {
-        next PROCESS_ADDR if $admin_qids[$level] and exists(SKIP_ADDRESS_HAVING->{$admin_qids[$level]});
+        return if $admin_qids[$level] and exists(SKIP_ADDRESS_HAVING->{$admin_qids[$level]});
         if (
             $admin_labels[$level] and
             $admin_types[$level] ne COUNTRY_QID and
@@ -373,7 +571,7 @@ PROCESS_ADDR: foreach (parse_csv($response->decoded_content)) {
         push @address_parts, $country;
         if (not OVERSEAS_MACRO_ADDRESS->{$marker_qid}) {
             push @error_msgs, "ERROR: [$marker_qid] Foreign marker has no macro address";
-            next;
+            return;
         }
         $marker_data->{macroAddress} = OVERSEAS_MACRO_ADDRESS->{$marker_qid};
         $marker_data->{region} = "Overseas";
@@ -395,15 +593,11 @@ PROCESS_ADDR: foreach (parse_csv($response->decoded_content)) {
     $marker_data->{locDesc} = $directions if $directions;
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
-
-say "INFO: Fetching and processing title data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_title_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?markerLabel ?title ?titleLang ?targetLang ?subtitle ?titleNoValue
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker p:P1476 ?titleStatement .
   OPTIONAL {
     ?titleStatement ps:P1476 ?title .
@@ -420,21 +614,27 @@ WHERE {
   }
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_title_data_csv_record {
 
-    my ($marker_qid, $label, $title, $title_lang_code, $target_lang_qid, $subtitle, $has_no_title) = @$_;
-    $marker_qid      = get_last_uri_path($marker_qid     );
-    $target_lang_qid = get_last_uri_path($target_lang_qid);
+    my $marker_qid      = get_last_uri_path(shift @_);
+    my $label           = shift;
+    my $title           = shift;
+    my $title_lang_code = shift;
+    my $target_lang_qid = get_last_uri_path(shift @_);
+    my $subtitle        = shift;
+    my $has_no_title    = shift;
+
     my $marker_data = $Data{$marker_qid};
 
     if ($target_lang_qid and not exists LANGUAGE_CODE->{$target_lang_qid}) {
         push @error_msgs, "ERROR: [$marker_qid] Unrecognized language ($target_lang_qid)";
-        next;
+        return;
     }
     if ($title_lang_code and not exists VALID_LANGUAGES->{$title_lang_code}) {
         push @error_msgs, "ERROR: [$marker_qid] Unrecognized language ($title_lang_code)";
-        next;
+        return;
     }
     if ($has_no_title) {
         if (
@@ -443,7 +643,7 @@ foreach (parse_csv($response->decoded_content)) {
             not $target_lang_qid
         ) {
             push @error_msgs, "ERROR: [$marker_qid] Marker is stated as both having no title and having a title";
-            next;
+            return;
         }
         if ($target_lang_qid) {
             if (not exists $marker_data->{details}) {
@@ -461,7 +661,7 @@ foreach (parse_csv($response->decoded_content)) {
     else {
         if (exists $marker_data->{has_no_title}) {
             push @error_msgs, "ERROR: [$marker_qid] Marker is stated as both having no title and having a title";
-            next;
+            return;
         }
         $marker_data->{details} = {} if not exists $marker_data->{details};
         my $current_lang = (
@@ -476,45 +676,43 @@ foreach (parse_csv($response->decoded_content)) {
     }
 }
 
-# Sanity-check number of languages and titles, and also generate name field
-while (my ($qid, $marker_data) = each %Data) {
-    next if $marker_data->{has_no_title};
-    if (
-        scalar keys %{$marker_data->{details}} > 1 and
-        $marker_data->{num_plaques} > 1 and
-        scalar keys %{$marker_data->{details}} != $marker_data->{num_plaques}
-    ) {
-        push @error_msgs, "ERROR: [$qid] Number of languages does not match number of plaques (P1114)";
-        next;
-    }
-    if (scalar keys %{$marker_data->{details}} == 0) {
-        push @error_msgs, "ERROR: [$qid] Marker has no title information (P1476)";
-        next;
-    }
-    foreach my $lang_code (@{(ORDERED_LANGUAGES)}) {
-        if (exists $marker_data->{details}{$lang_code}) {
-            $marker_data->{name} = $marker_data->{details}{$lang_code}{title};
-            # Remove quotation marks from El Deposito
-            if ($marker_data->{name} =~ /^“(.+)”$/) {
-                $marker_data->{name} = $1;
+sub post_process_title_data {
+    while (my ($qid, $marker_data) = each %Data) {
+
+        next if $marker_data->{has_no_title};
+        if (
+            scalar keys %{$marker_data->{details}} > 1 and
+            $marker_data->{num_plaques} > 1 and
+            scalar keys %{$marker_data->{details}} != $marker_data->{num_plaques}
+        ) {
+            push @error_msgs, "ERROR: [$qid] Number of languages does not match number of plaques (P1114)";
+            next;
+        }
+        if (scalar keys %{$marker_data->{details}} == 0) {
+            push @error_msgs, "ERROR: [$qid] Marker has no title information (P1476)";
+            next;
+        }
+
+        foreach my $lang_code (@{(ORDERED_LANGUAGES)}) {
+            if (exists $marker_data->{details}{$lang_code}) {
+                $marker_data->{name} = $marker_data->{details}{$lang_code}{title};
+                # Remove quotation marks from El Deposito
+                if ($marker_data->{name} =~ /^“(.+)”$/) {
+                    $marker_data->{name} = $1;
+                }
+                # Remove line breaks
+                $marker_data->{name} =~ s/<br>/ /;
+                last;
             }
-            # Remove line breaks
-            $marker_data->{name} =~ s/<br>/ /;
-            last;
         }
     }
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
-
-
-say "INFO: Fetching and processing short inscription data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_inscription_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?inscription ?inscriptionLang ?inscriptionNoValue
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker p:P1684 ?inscriptionStatement .
   OPTIONAL {
     ?inscriptionStatement ps:P1684 ?inscription .
@@ -526,17 +724,21 @@ WHERE {
   }
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_inscription_data_csv_record {
 
-    my ($marker_qid, $inscription, $lang_code, $has_no_inscription) = @$_;
-    $marker_qid = get_last_uri_path($marker_qid);
+    my $marker_qid         = get_last_uri_path(shift @_);
+    my $inscription        = shift;
+    my $lang_code          = shift;
+    my $has_no_inscription = shift;
+
     my $marker_data = $Data{$marker_qid};
 
     if ($has_no_inscription) {
         if (exists $marker_data->{has_no_title}) {
             push @error_msgs, "ERROR: [$marker_qid] Marker has no title and inscription";
-            next;
+            return;
         }
         foreach my $l10n_detail (values %{$marker_data->{details}}) {
             delete $l10n_detail->{inscription};
@@ -547,51 +749,28 @@ foreach (parse_csv($response->decoded_content)) {
     }
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
+sub query_long_inscription {
 
-
-# Attempt to retrieve long inscriptions
-say "INFO: Fetching and processing long inscription data...";
-
-my $progress;
-$progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
-my $pm0 = Parallel::ForkManager->new(32);
-
-$pm0->run_on_finish(
-    sub {
-        my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
-        if (defined($data_ref)) {
-            foreach my $inscription_datum (@$data_ref) {
-                my ($lang_code, $inscription) = @$inscription_datum;
-                process_inscription($ident, $inscription, $lang_code);
-            }
-        }
-    }
-);
-
-my $num_markers_processed = 0;
-while (my ($qid, $marker_data) = each %Data) {
-
-    $progress->update(++$num_markers_processed) if $Log_Level == 1;
+    my $pm          = shift;
+    my $qid         = shift;
+    my $marker_data = shift;
 
     # Check if there are missing inscriptions
     my $has_missing_inscription;
     foreach my $l10n_detail (values %{$marker_data->{details}}) {
-        if (exists $l10n_detail->{inscription} and $l10n_detail->{inscription} eq "") {
+        if (exists $l10n_detail->{inscription} and $l10n_detail->{inscription} eq '') {
             $has_missing_inscription = 1;
             last;
         }
     }
+    return if not $has_missing_inscription;
 
-    next if not $has_missing_inscription;
-    $pm0->start($qid) and next;
+    $pm->start($qid) and return;
 
     say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
-    $ua = LWP::UserAgent->new;
+    my $ua = LWP::UserAgent->new;
     $ua->default_header(Accept => "application/sparql-results+json");
-    $response = $ua->post(WIKIDATA_API_URL, {
+    my $response = $ua->post(WIKIDATA_API_URL, {
         format => "json",
         action => "query",
         prop   => "revisions",
@@ -601,7 +780,7 @@ while (my ($qid, $marker_data) = each %Data) {
     my $response_raw = decode_json($response->decoded_content);
     my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
     if ($page_id == -1) {
-        $pm0->finish(0);
+        $pm->finish(0);
     }
     else {
         my @return_data;
@@ -612,29 +791,31 @@ while (my ($qid, $marker_data) = each %Data) {
             my ($inscription) = $template_text =~ /\|\s*inscription\s*=\s*(.+?)(?:\||$)/s;
             if (not exists LANGUAGE_CODE->{$lang_qid}) {
                 push @error_msgs, "ERROR: [$qid] Inscription is in an unrecognized language ($lang_qid)";
-                next;
+                return;
             }
             if (length $inscription <= WIKIDATA_MAX_STR_LENGTH) {
                 warn "WARNING: [$qid] \"Long\" inscription is <= " . WIKIDATA_MAX_STR_LENGTH . " characters in length";
             }
             push @return_data, [LANGUAGE_CODE->{$lang_qid}, $inscription];
         }
-        $pm0->finish(0, \@return_data);
+        $pm->finish(0, \@return_data);
     }
 }
 
-$pm0->wait_all_children;
-
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
+sub process_long_inscription {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
+    return if not defined $data_ref;
+    foreach my $inscription_datum (@$data_ref) {
+        my ($lang_code, $inscription) = @$inscription_datum;
+        process_inscription($ident, $inscription, $lang_code);
+    }
 }
 
-
-say "INFO: Fetching and processing unveiling date data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_unveiling_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?date ?datePrecision ?part
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker p:P571 ?dateStatement .
   OPTIONAL { ?dateStatement pq:P518 ?part }
   FILTER NOT EXISTS { ?dateStatement pq:P582 ?endTime }
@@ -643,12 +824,15 @@ WHERE {
   ?dateValue wikibase:timePrecision ?datePrecision .
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_unveiling_data_csv_record {
 
-    my ($marker_qid, $date, $precision, $lang_qid) = @$_;
-    $marker_qid = get_last_uri_path($marker_qid);
-    $lang_qid   = get_last_uri_path($lang_qid  );
+    my $marker_qid = get_last_uri_path(shift @_);
+    my $date       = shift;
+    my $precision  = shift;
+    my $lang_qid   = get_last_uri_path(shift @_);
+
     my $marker_data = $Data{$marker_qid};
 
     if ($precision < 9 or 11 < $precision) {
@@ -657,15 +841,15 @@ foreach (parse_csv($response->decoded_content)) {
     if ($lang_qid) {
         if ($marker_data->{num_plaques} == 1) {
             push @error_msgs, "ERROR: [$marker_qid] Date (P571) has a language (P518) but there is only 1 plaque (P1114)";
-            next;
+            return;
         }
         if (not exists $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}) {
             push @error_msgs, "ERROR: [$marker_qid] Date (P571) applies an extra language (P518)";
-            next;
+            return;
         }
         if (exists $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}{date}) {
             push @error_msgs, "ERROR: [$marker_qid] Date (P571) has a duplicate language (P518)";
-            next;
+            return;
         }
         $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}{date} = substr($date, 0, $precision == 11 ? 10 : 4);
         $marker_data->{date} = JSON::true;
@@ -673,22 +857,17 @@ foreach (parse_csv($response->decoded_content)) {
     else {
         if (exists $marker_data->{details}{date}) {
             push @error_msgs, "ERROR: [$marker_qid] There is more than 1 date (P571)";
-            next;
+            return;
         }
         $marker_data->{date} = substr($date, 0, $precision == 11 ? 10 : 4);
     }
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
-
-
-say "INFO: Fetching and processing photos...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_photo_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?image ?targetLang ?ordinal ?vicinityImage
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker p:P18 ?imageStatement .
   FILTER NOT EXISTS { ?imageStatement pq:P582 ?endTime }
   OPTIONAL {
@@ -703,14 +882,16 @@ WHERE {
   }
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_photo_data_csv_record {
 
-    my ($marker_qid, $photo_filename, $lang_qid, $ordinal, $loc_photo_filename) = @$_;
-    $marker_qid = get_last_uri_path($marker_qid);
-    $lang_qid   = get_last_uri_path($lang_qid  );
-    $photo_filename     = decode("UTF-8", uri_unescape(get_last_uri_path($photo_filename    )));
-    $loc_photo_filename = decode("UTF-8", uri_unescape(get_last_uri_path($loc_photo_filename)));
+    my $marker_qid         = get_last_uri_path(shift @_);
+    my $photo_filename     = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_)));
+    my $lang_qid           = get_last_uri_path(shift @_);
+    my $ordinal            = shift;
+    my $loc_photo_filename = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_)));
+
     my $marker_data = $Data{$marker_qid};
 
     if ($photo_filename) {
@@ -721,28 +902,28 @@ foreach (parse_csv($response->decoded_content)) {
         if ($marker_data->{num_plaques} == 1) {
             if (exists $marker_data->{photo}) {
                 push @error_msgs, "ERROR: [$marker_qid] Multiple photos (P18) but there is only 1 plaque (P1114)";
-                next;
+                return;
             }
             $marker_data->{photo} = $photo_record;
         }
         else {
             if (not $lang_qid and not $ordinal) {
                 push @error_msgs, "ERROR: [$marker_qid] Missing language (P518) or ordinal (P1545) for marker with multiple plaques (P1114)";
-                next;
+                return;
             }
             if ($lang_qid) {
                 if (not exists LANGUAGE_CODE->{$lang_qid}) {
                     push @error_msgs, "ERROR: [$marker_qid] Photo is in an unrecognized language ($lang_qid) (P518)";
-                    next;
+                    return;
                 }
                 my $lang_code = LANGUAGE_CODE->{$lang_qid};
                 if (not exists $marker_data->{details}{$lang_code}) {
                     push @error_msgs, "ERROR: [$marker_qid] Photo is in an extra language ($lang_code) (P518)";
-                    next;
+                    return;
                 }
                 if (exists $marker_data->{details}{$lang_code}{photo}) {
                     push @error_msgs, "ERROR: [$marker_qid] Duplicate photo language ($lang_code) (P518)";
-                    next;
+                    return;
                 }
                 $marker_data->{details}{$lang_code}{photo} = $photo_record;
             }
@@ -757,7 +938,7 @@ foreach (parse_csv($response->decoded_content)) {
     elsif ($loc_photo_filename) {
         if (exists $marker_data->{locPhoto}) {
             push @error_msgs, "ERROR: [$marker_qid] Multiple vicinity photos (P18 P3831 wd:Q16968816)";
-            next;
+            return;
         }
         $marker_data->{locPhoto} = {
             file   => $loc_photo_filename,
@@ -766,51 +947,23 @@ foreach (parse_csv($response->decoded_content)) {
     }
 }
 
-$progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
-my $pm1 = Parallel::ForkManager->new(32);
+sub query_photo_metadata {
 
-$pm1->run_on_finish(
-    sub {
-        my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
-        if (defined($data_ref)) {
-            my ($type, $raw_data) = @$data_ref;
-            my ($width, $height, $credit) = split /\|/, $raw_data, 3;
-            my $photo_data;
-            if ($type eq "locPhoto") {
-                $photo_data = $Data{$ident}{locPhoto};
-            }
-            elsif ($type eq "photo") {
-                $photo_data = $Data{$ident}{photo};
-            }
-            elsif ($type =~ /^\d+$/) {
-                $photo_data = $Data{$ident}{photo}[$type];
-            }
-            else {
-                $photo_data = $Data{$ident}{details}{$type}{photo};
-            }
-            $photo_data->{width } = $width  + 0;
-            $photo_data->{height} = $height + 0;
-            $photo_data->{credit} = $credit;
-        }
-    }
-);
-
-$num_markers_processed = 0;
-while (my ($qid, $marker_data) = each %Data) {
-
-    $progress->update(++$num_markers_processed) if $Log_Level == 1;
+    my $pm          = shift;
+    my $qid         = shift;
+    my $marker_data = shift;
 
     if ($marker_data->{locPhoto}) {
-        if ($pm1->start($qid) == 0) {
+        if ($pm->start($qid) == 0) {
             my $photo_data = get_photo_data($qid, $marker_data->{locPhoto}{file});
-            $pm1->finish(0, ["locPhoto", $photo_data]);
+            $pm->finish(0, ["locPhoto", $photo_data]);
         }
     }
     if ($marker_data->{num_plaques} == 1) {
         if ($marker_data->{photo}) {
-            if ($pm1->start($qid) == 0) {
+            if ($pm->start($qid) == 0) {
                 my $photo_data = get_photo_data($qid, $marker_data->{photo}{file});
-                $pm1->finish(0, ["photo", $photo_data]);
+                $pm->finish(0, ["photo", $photo_data]);
             }
         }
     }
@@ -818,9 +971,9 @@ while (my ($qid, $marker_data) = each %Data) {
         if ($marker_data->{photo}) {
             foreach my $idx (1..scalar @{$marker_data->{photo}}) {
                 if ($marker_data->{photo}[$idx]) {
-                    if ($pm1->start($qid) == 0) {
+                    if ($pm->start($qid) == 0) {
                         my $photo_data = get_photo_data($qid, $marker_data->{photo}[$idx]{file});
-                        $pm1->finish(0, [$idx, $photo_data]);
+                        $pm->finish(0, [$idx, $photo_data]);
                     }
                 }
             }
@@ -828,9 +981,9 @@ while (my ($qid, $marker_data) = each %Data) {
         else {
             foreach my $lang_code (keys %{$marker_data->{details}}) {
                 if ($marker_data->{details}{$lang_code}{photo}) {
-                    if ($pm1->start($qid) == 0) {
+                    if ($pm->start($qid) == 0) {
                         my $photo_data = get_photo_data($qid, $marker_data->{details}{$lang_code}{photo}{file});
-                        $pm1->finish(0, [$lang_code, $photo_data]);
+                        $pm->finish(0, [$lang_code, $photo_data]);
                     }
                 }
             }
@@ -838,18 +991,34 @@ while (my ($qid, $marker_data) = each %Data) {
     }
 }
 
-$pm1->wait_all_children;
-
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
+sub process_photo_metadata {
+    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
+    return if not defined $data_ref;
+    my ($type, $raw_data) = @$data_ref;
+    my ($width, $height, $credit) = split /\|/, $raw_data, 3;
+    my $photo_data;
+    if ($type eq "locPhoto") {
+        $photo_data = $Data{$ident}{locPhoto};
+    }
+    elsif ($type eq "photo") {
+        $photo_data = $Data{$ident}{photo};
+    }
+    elsif ($type =~ /^\d+$/) {
+        $photo_data = $Data{$ident}{photo}[$type];
+    }
+    else {
+        $photo_data = $Data{$ident}{details}{$type}{photo};
+    }
+    $photo_data->{width } = $width  + 0;
+    $photo_data->{height} = $height + 0;
+    $photo_data->{credit} = $credit;
 }
 
-
-say "INFO: Fetching and processing commemorates-Wikipedia data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_commemorates_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?commemoratesLabel ?commemoratesArticle
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?marker wdt:P547 ?commemorates .
   ?commemorates rdfs:label ?commemoratesLabel .
   FILTER (LANG(?commemoratesLabel) = "en")
@@ -857,13 +1026,14 @@ WHERE {
                        schema:isPartOf <https://en.wikipedia.org/> .
 }
 EOQ
+}
 
-foreach (parse_csv($response->decoded_content)) {
+sub process_commemorates_data_csv_record {
 
-    my ($marker_qid, $label, $article_url) = @$_;
-    $marker_qid = get_last_uri_path($marker_qid);
-    my $title = decode("UTF-8", uri_unescape(get_last_uri_path($article_url)));
-    $title =~ s/_/ /g;
+    my $marker_qid = get_last_uri_path(shift @_);
+    my $label      = shift;
+    my $title      = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_))) =~ s/_/ /gr;
+
     my $marker_data = $Data{$marker_qid};
 
     $marker_data->{wikipedia} //= {};
@@ -875,96 +1045,21 @@ foreach (parse_csv($response->decoded_content)) {
     }
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
-}
-
-
-say "INFO: Fetching and processing Commons category data...";
-$response = $ua->post(WDQS_URL, {query => <<"EOQ"});
+sub get_category_data_sparql_query {
+    return << 'EOQ';
 SELECT ?marker ?commonsCategory
 WHERE {
-  $sparql_values
+  <<sparql_values>>
   ?commonsCategory schema:about ?marker ;
                    schema:isPartOf <https://commons.wikimedia.org/> .
 }
 EOQ
-
-foreach (parse_csv($response->decoded_content)) {
-    my ($marker_qid, $category) = @$_;
-    my $marker_data = $Data{get_last_uri_path($marker_qid)};
-    $category = substr($category, 44);
-    $marker_data->{commons} = $category;
 }
 
-if (@error_msgs) {
-    die join("\n", @error_msgs) . "\n";
+sub process_category_data_csv_record {
+    my $marker_data = $Data{get_last_uri_path(shift @_)};
+    $marker_data->{commons} = substr(shift @_, 44);
 }
-
-
-say "INFO: Marshalling data structure into final format...";
-while (my ($qid, $marker_data) = each %Data) {
-    if (
-        $marker_data->{num_plaques} > 1 or
-        scalar keys %{$marker_data->{details}} == 1
-    ) {
-        if (ref($marker_data->{photo}) eq "ARRAY") {
-            shift @{$marker_data->{photo}};
-        }
-        foreach my $lang_code (keys %{$marker_data->{details}}) {
-            my $hash_ref = $marker_data->{details}{$lang_code};
-            $hash_ref->{text} = {};
-            foreach my $key (qw/title subtitle inscription/) {
-                $hash_ref->{text}{$key} = $hash_ref->{$key} if exists $hash_ref->{$key};
-                delete $hash_ref->{$key};
-            }
-            if (
-                $marker_data->{num_plaques} == 1 or
-                ref($marker_data->{photo}) eq "ARRAY"
-            ) {
-                $hash_ref->{photo} = $marker_data->{photo} if exists $marker_data->{photo};
-                delete $marker_data->{photo};
-            }
-        }
-    }
-    else {
-        my %text;
-        foreach my $lang_code (keys %{$marker_data->{details}}) {
-            $text{$lang_code} = $marker_data->{details}{$lang_code};
-            delete $marker_data->{details}{$lang_code};
-        }
-        $marker_data->{details}{text} = \%text;
-        $marker_data->{details}{photo} = $marker_data->{photo} if exists $marker_data->{photo};
-        delete $marker_data->{photo};
-    }
-    delete $marker_data->{num_plaques};
-    delete $marker_data->{has_no_title} if exists $marker_data->{has_no_title};
-}
-
-say "INFO: Comparing with control data...";
-
-my $control_json = read_file("control_data.json");
-my $control_data = decode_json($control_json);
-my @control_qids = keys %$control_data;
-
-my %actual_data;
-@actual_data{@control_qids} = @Data{@control_qids};
-
-my $expected_json = JSON->new->utf8->pretty->canonical->encode($control_data);
-my $actual_json   = JSON->new->utf8->pretty->canonical->encode(\%actual_data);
-
-write_file("tmp_expected.json", $expected_json);
-write_file("tmp_actual.json"  , $actual_json  );
-
-my $diff = `diff tmp_expected.json tmp_actual.json`;
-if ($diff) {
-    say $diff;
-    die "ERROR: Mismatch with control data";
-}
-
-unlink("tmp_expected.json", "tmp_actual.json");
-write_file("data.json", encode_json(\%Data));
-say "INFO: Data successfully compiled!";
 
 
 sub get_last_uri_path {
@@ -1036,9 +1131,9 @@ sub get_photo_data {
 
     say "INFO: [$qid] Fetching credit for $photo" if $Log_Level > 1;
 
-    $ua = LWP::UserAgent->new;
+    my $ua = LWP::UserAgent->new;
     $ua->default_header(Accept => "application/sparql-results+json");
-    $response = $ua->post(COMMONS_API_URL, {
+    my $response = $ua->post(COMMONS_API_URL, {
         format => "json",
         action => "query",
         prop   => "imageinfo",
