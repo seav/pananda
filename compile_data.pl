@@ -278,28 +278,32 @@ say "INFO: Data successfully compiled!";
 
 sub get_initial_data_spaql_query {
     return << 'EOQ';
-SELECT ?marker ?lat ?lon ?part ?quantity WHERE {
+SELECT ?markerQid ?lat ?lon ?langQid ?quantity WHERE {
   ?marker wdt:P31 wd:Q21562164 ;
           p:P625 ?coordStatement .
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?coordStatement psv:P625 ?coord .
   ?coord wikibase:geoLatitude ?lat ;
          wikibase:geoLongitude ?lon .
-  OPTIONAL { ?coordStatement pq:P518 ?part }
+  OPTIONAL {
+    ?coordStatement pq:P518 ?lang .
+    BIND(SUBSTR(STR(?lang), 32) AS ?langQid) .
+  }
   FILTER NOT EXISTS { ?coordStatement pq:P582 ?endTime }
-  OPTIONAL { ?marker wdt:P1114 ?quantity }
-  FILTER (!isBlank(?coord)) .
+  OPTIONAL { ?marker wdt:P1114 ?quantityRaw }
+  BIND(IF(BOUND(?quantityRaw), ?quantityRaw, 1) AS ?quantity) .
+  FILTER (!ISBLANK(?coord)) .
 }
 EOQ
 }
 
 sub process_initial_data_csv_record {
 
-    my $marker_qid  = get_last_uri_path(shift @_);
+    my $marker_qid  = shift;
     my $lat         = shift;
     my $lon         = shift;
-    my $lang_qid    = get_last_uri_path(shift @_);
-    my $num_plaques = shift;
-    $num_plaques = $num_plaques ? $num_plaques + 0 : 1;
+    my $lang_qid    = shift;
+    my $num_plaques = (shift @_) + 0;
 
     $Data{$marker_qid} //= {};
     my $marker_data = $Data{$marker_qid};
@@ -371,20 +375,28 @@ sub post_process_initial_data {
 
 sub get_address_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?location ?locationLabel ?address ?countryLabel ?directions
-       ?admin0 ?admin0Label ?admin0Type ?admin1 ?admin1Label ?admin1Type
-       ?admin2 ?admin2Label ?admin2Type ?admin3 ?admin3Label ?admin3Type
-       ?islandLabel ?islandAdminType
+SELECT ?markerQid ?locationQid ?locationLabel ?address ?countryLabel ?directions
+       ?admin0Qid ?admin0Label ?admin0TypeQid
+       ?admin1Qid ?admin1Label ?admin1TypeQid
+       ?admin2Qid ?admin2Label ?admin2TypeQid
+       ?admin3Qid ?admin3Label ?admin3TypeQid
+       ?islandLabel ?islandAdminTypeQid
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker wdt:P17 ?country .
   OPTIONAL { ?marker wdt:P6375 ?address }
-  OPTIONAL { ?marker wdt:P276 ?location }
+  OPTIONAL {
+    ?marker wdt:P276 ?location .
+    BIND(SUBSTR(STR(?location), 32) AS ?locationQid) .
+  }
   OPTIONAL { ?marker wdt:P2795 ?directions }
   OPTIONAL {
     ?marker wdt:P131 ?admin0 .
+    BIND(SUBSTR(STR(?admin0), 32) AS ?admin0Qid) .
     OPTIONAL {
       ?admin0 wdt:P31 ?admin0Type .
+      BIND(SUBSTR(STR(?admin0Type), 32) AS ?admin0TypeQid) .
       FILTER (
         ?admin0Type = wd:Q6256     ||
         ?admin0Type = wd:Q24698    ||
@@ -398,8 +410,10 @@ WHERE {
     }
     OPTIONAL {
       ?admin0 wdt:P131 ?admin1 .
+      BIND(SUBSTR(STR(?admin1), 32) AS ?admin1Qid) .
       OPTIONAL {
         ?admin1 wdt:P31 ?admin1Type .
+        BIND(SUBSTR(STR(?admin1Type), 32) AS ?admin1TypeQid) .
         FILTER (
           ?admin1Type = wd:Q6256     ||
           ?admin1Type = wd:Q24698    ||
@@ -413,8 +427,10 @@ WHERE {
       }
       OPTIONAL {
         ?admin1 wdt:P131 ?admin2 .
+        BIND(SUBSTR(STR(?admin2), 32) AS ?admin2Qid) .
         OPTIONAL {
           ?admin2 wdt:P31 ?admin2Type .
+          BIND(SUBSTR(STR(?admin2Type), 32) AS ?admin2TypeQid) .
           FILTER (
             ?admin2Type = wd:Q6256     ||
             ?admin2Type = wd:Q24698    ||
@@ -428,8 +444,10 @@ WHERE {
         }
         OPTIONAL {
           ?admin2 wdt:P131 ?admin3 .
+          BIND(SUBSTR(STR(?admin3), 32) AS ?admin3Qid) .
           OPTIONAL {
             ?admin3 wdt:P31 ?admin3Type .
+            BIND(SUBSTR(STR(?admin3Type), 32) AS ?admin3TypeQid) .
             FILTER (
               ?admin3Type = wd:Q6256     ||
               ?admin3Type = wd:Q24698    ||
@@ -456,6 +474,7 @@ WHERE {
       ?islandAdminType = wd:Q15634883 ||
       ?islandAdminType = wd:Q61878
     )
+    BIND(SUBSTR(STR(?islandAdminType), 32) AS ?islandAdminTypeQid) .
   }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
 }
@@ -464,8 +483,8 @@ EOQ
 
 sub process_address_data_csv_record {
 
-    my $marker_qid        = get_last_uri_path(shift @_);
-    my $location_qid      = get_last_uri_path(shift @_);
+    my $marker_qid        = shift;
+    my $location_qid      = shift;
     my $location_label    = shift;
     my $street_address    = shift;
     my $country           = shift;
@@ -483,18 +502,15 @@ sub process_address_data_csv_record {
     my $admin3_label      = shift;
     my $admin3_type       = shift;
     my $island_label      = shift;
-    my $island_admin_type = get_last_uri_path(shift @_);
+    my $island_admin_type = shift;
 
     my @admin_qids   = ($admin0_qid  , $admin1_qid  , $admin2_qid  , $admin3_qid  );
     my @admin_labels = ($admin0_label, $admin1_label, $admin2_label, $admin3_label);
     my @admin_types  = ($admin0_type , $admin1_type , $admin2_type , $admin3_type );
 
     foreach (0..3) {
-        $admin_qids [$_] = get_last_uri_path($admin_qids [$_]);
-        $admin_types[$_] = get_last_uri_path($admin_types[$_]);
-        if (exists ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]}) {
-            $admin_labels[$_] = ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]};
-        }
+        next if not exists ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]};
+        $admin_labels[$_] = ADDRESS_LABEL_REPLACEMENT->{$admin_qids[$_]};
     }
 
     my $marker_data = $Data{$marker_qid};
@@ -595,20 +611,27 @@ sub process_address_data_csv_record {
 
 sub get_title_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?markerLabel ?title ?titleLang ?targetLang ?subtitle ?titleNoValue
+SELECT ?markerQid ?markerLabel ?title ?titleLangCode ?targetLangQid ?subtitle ?noValue
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker p:P1476 ?titleStatement .
   OPTIONAL {
     ?titleStatement ps:P1476 ?title .
-    BIND(LANG(?title) AS ?titleLang) .
-    OPTIONAL { ?titleStatement pq:P518 ?targetLang }
+    BIND(LANG(?title) AS ?titleLangCode) .
+    OPTIONAL {
+      ?titleStatement pq:P518 ?targetLang .
+      BIND(SUBSTR(STR(?targetLang), 32) AS ?targetLangQid) .
+    }
     OPTIONAL { ?titleStatement pq:P1680 ?subtitle }
   }
   OPTIONAL {
-    ?titleStatement a ?titleNoValue .
-    FILTER (?titleNoValue = wdno:P1476)
-    OPTIONAL { ?titleStatement pq:P518 ?targetLang }
+    ?titleStatement a ?noValue .
+    FILTER (?noValue = wdno:P1476)
+    OPTIONAL {
+      ?titleStatement pq:P518 ?targetLang .
+      BIND(SUBSTR(STR(?targetLang), 32) AS ?targetLangQid) .
+    }
     ?marker rdfs:label ?markerLabel .
     FILTER (LANG(?markerLabel) = "en")
   }
@@ -618,11 +641,11 @@ EOQ
 
 sub process_title_data_csv_record {
 
-    my $marker_qid      = get_last_uri_path(shift @_);
+    my $marker_qid      = shift;
     my $label           = shift;
     my $title           = shift;
     my $title_lang_code = shift;
-    my $target_lang_qid = get_last_uri_path(shift @_);
+    my $target_lang_qid = shift;
     my $subtitle        = shift;
     my $has_no_title    = shift;
 
@@ -710,17 +733,18 @@ sub post_process_title_data {
 
 sub get_inscription_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?inscription ?inscriptionLang ?inscriptionNoValue
+SELECT ?markerQid ?inscription ?langCode ?noValue
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker p:P1684 ?inscriptionStatement .
   OPTIONAL {
     ?inscriptionStatement ps:P1684 ?inscription .
-    BIND(LANG(?inscription) AS ?inscriptionLang) .
+    BIND(LANG(?inscription) AS ?langCode) .
   }
   OPTIONAL {
-    ?inscriptionStatement a ?inscriptionNoValue .
-    FILTER (?inscriptionNoValue = wdno:P1684)
+    ?inscriptionStatement a ?noValue .
+    FILTER (?noValue = wdno:P1684)
   }
 }
 EOQ
@@ -728,7 +752,7 @@ EOQ
 
 sub process_inscription_data_csv_record {
 
-    my $marker_qid         = get_last_uri_path(shift @_);
+    my $marker_qid         = shift;
     my $inscription        = shift;
     my $lang_code          = shift;
     my $has_no_inscription = shift;
@@ -813,25 +837,29 @@ sub process_long_inscription {
 
 sub get_unveiling_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?date ?datePrecision ?part
+SELECT ?markerQid ?date ?datePrecision ?langQid
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker p:P571 ?dateStatement .
-  OPTIONAL { ?dateStatement pq:P518 ?part }
+  OPTIONAL {
+    ?dateStatement pq:P518 ?lang .
+    BIND(SUBSTR(STR(?lang), 32) AS ?langQid) .
+  }
   FILTER NOT EXISTS { ?dateStatement pq:P582 ?endTime }
   ?dateStatement psv:P571 ?dateValue .
-  ?dateValue wikibase:timeValue ?date .
-  ?dateValue wikibase:timePrecision ?datePrecision .
+  ?dateValue wikibase:timeValue ?date ;
+             wikibase:timePrecision ?datePrecision .
 }
 EOQ
 }
 
 sub process_unveiling_data_csv_record {
 
-    my $marker_qid = get_last_uri_path(shift @_);
+    my $marker_qid = shift;
     my $date       = shift;
     my $precision  = shift;
-    my $lang_qid   = get_last_uri_path(shift @_);
+    my $lang_qid   = shift;
 
     my $marker_data = $Data{$marker_qid};
 
@@ -865,19 +893,25 @@ sub process_unveiling_data_csv_record {
 
 sub get_photo_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?image ?targetLang ?ordinal ?vicinityImage
+SELECT ?markerQid ?photoFilename ?langQid ?ordinal ?vicinityPhotoFilename
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker p:P18 ?imageStatement .
   FILTER NOT EXISTS { ?imageStatement pq:P582 ?endTime }
   OPTIONAL {
-    ?imageStatement ps:P18 ?image .
-    OPTIONAL { ?imageStatement pq:P518 ?targetLang }
+    ?imageStatement ps:P18 ?photo .
+    BIND(SUBSTR(STR(?photo), 52) AS ?photoFilename) .
+    OPTIONAL {
+      ?imageStatement pq:P518 ?lang .
+      BIND(SUBSTR(STR(?lang), 32) AS ?langQid) .
+    }
     OPTIONAL { ?imageStatement pq:P1545 ?ordinal }
     FILTER NOT EXISTS { ?imageStatement pq:P3831 wd:Q16968816 }
   }
   OPTIONAL {
-    ?imageStatement ps:P18 ?vicinityImage .
+    ?imageStatement ps:P18 ?photo .
+    BIND(SUBSTR(STR(?photo), 52) AS ?vicinityPhotoFilename) .
     FILTER EXISTS { ?imageStatement pq:P3831 wd:Q16968816 }
   }
 }
@@ -886,11 +920,11 @@ EOQ
 
 sub process_photo_data_csv_record {
 
-    my $marker_qid         = get_last_uri_path(shift @_);
-    my $photo_filename     = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_)));
-    my $lang_qid           = get_last_uri_path(shift @_);
+    my $marker_qid         = shift;
+    my $photo_filename     = decode("UTF-8", uri_unescape(shift @_));
+    my $lang_qid           = shift;
     my $ordinal            = shift;
-    my $loc_photo_filename = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_)));
+    my $loc_photo_filename = decode("UTF-8", uri_unescape(shift @_));
 
     my $marker_data = $Data{$marker_qid};
 
@@ -1016,23 +1050,25 @@ sub process_photo_metadata {
 
 sub get_commemorates_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?commemoratesLabel ?commemoratesArticle
+SELECT ?markerQid ?commemoratesLabel ?articleTitle
 WHERE {
   <<sparql_values>>
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
   ?marker wdt:P547 ?commemorates .
   ?commemorates rdfs:label ?commemoratesLabel .
   FILTER (LANG(?commemoratesLabel) = "en")
-  ?commemoratesArticle schema:about ?commemorates ;
-                       schema:isPartOf <https://en.wikipedia.org/> .
+  ?articleUrl schema:about ?commemorates ;
+              schema:isPartOf <https://en.wikipedia.org/> .
+  BIND(SUBSTR(STR(?articleUrl), 31) as ?articleTitle) .
 }
 EOQ
 }
 
 sub process_commemorates_data_csv_record {
 
-    my $marker_qid = get_last_uri_path(shift @_);
+    my $marker_qid = shift;
     my $label      = shift;
-    my $title      = decode("UTF-8", uri_unescape(get_last_uri_path(shift @_))) =~ s/_/ /gr;
+    my $title      = decode("UTF-8", uri_unescape(shift @_)) =~ s/_/ /gr;
 
     my $marker_data = $Data{$marker_qid};
 
@@ -1047,26 +1083,22 @@ sub process_commemorates_data_csv_record {
 
 sub get_category_data_sparql_query {
     return << 'EOQ';
-SELECT ?marker ?commonsCategory
+SELECT ?markerQid ?category
 WHERE {
   <<sparql_values>>
-  ?commonsCategory schema:about ?marker ;
-                   schema:isPartOf <https://commons.wikimedia.org/> .
+  BIND(SUBSTR(STR(?marker), 32) AS ?markerQid) .
+  ?categoryUrl schema:about ?marker ;
+               schema:isPartOf <https://commons.wikimedia.org/> .
+  BIND(SUBSTR(STR(?categoryUrl), 45) as ?category) .
 }
 EOQ
 }
 
 sub process_category_data_csv_record {
-    my $marker_data = $Data{get_last_uri_path(shift @_)};
-    $marker_data->{commons} = substr(shift @_, 44);
+    my $marker_data = $Data{shift @_};
+    $marker_data->{commons} = shift;
 }
 
-
-sub get_last_uri_path {
-    my $uri = shift;
-    return +(split(/\//, $uri))[-1] if $uri;
-    return "";
-}
 
 sub parse_csv {
     my $input = shift;
