@@ -3,7 +3,7 @@
 use utf8;
 use warnings;
 use 5.012;
-use feature "unicode_strings";
+use feature 'unicode_strings';
 
 use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
@@ -19,28 +19,28 @@ use URI::Escape;
 
 use constant {
     LANGUAGE_CODE             => {
-        Q1860  => "en",
-        Q34057 => "tl",
-        Q33239 => "ceb",
-        Q35936 => "ilo",
-        Q36121 => "pam",
-        Q1321  => "es",
-        Q188   => "de",
-        Q150   => "fr",
+        Q1860  => 'en',
+        Q34057 => 'tl',
+        Q33239 => 'ceb',
+        Q35936 => 'ilo',
+        Q36121 => 'pam',
+        Q1321  => 'es',
+        Q188   => 'de',
+        Q150   => 'fr',
     },
     ORDERED_LANGUAGES         => ['en', 'tl', 'ceb', 'ilo', 'pam', 'es', 'de', 'fr'],
-    COUNTRY_QID               => "Q6256",
-    REGION_QID                => "Q24698",
-    PROVINCE_QID              => "Q24746",
-    HUC_QID                   => "Q29946056",
-    CITY_QID                  => "Q104157",
-    MUNICIPALITY_QID          => "Q24764",
-    METRO_MANILA_QID          => "Q13580",
-    MANILA_QID                => "Q1461",
-    DISTRICT_OF_MANILA_QID    => "Q15634883",
-    WDQS_URL                  => "https://query.wikidata.org/sparql",
-    COMMONS_API_URL           => "https://commons.wikimedia.org/w/api.php",
-    WIKIDATA_API_URL          => "https://www.wikidata.org/w/api.php",
+    COUNTRY_QID               => 'Q6256',
+    REGION_QID                => 'Q24698',
+    PROVINCE_QID              => 'Q24746',
+    HUC_QID                   => 'Q29946056',
+    CITY_QID                  => 'Q104157',
+    MUNICIPALITY_QID          => 'Q24764',
+    METRO_MANILA_QID          => 'Q13580',
+    MANILA_QID                => 'Q1461',
+    DISTRICT_OF_MANILA_QID    => 'Q15634883',
+    WDQS_URL                  => 'https://query.wikidata.org/sparql',
+    COMMONS_API_URL           => 'https://commons.wikimedia.org/w/api.php',
+    WIKIDATA_API_URL          => 'https://www.wikidata.org/w/api.php',
     WIKIDATA_MAX_STR_LENGTH   => 1500,
     SKIPPED_ADDRESS_LABELS    => {
         Q2863958 => 1,  # arrondissement of Paris
@@ -55,32 +55,32 @@ use constant {
         Q16665915 => 1,  # Metropolis of Greater Paris
     },
     ADDRESS_LABEL_REPLACEMENT => {
-        Q245546 => "6th arrondissement",
+        Q245546 => '6th arrondissement',
     },
     OVERSEAS_MACRO_ADDRESS    => {
-        Q30130266 => "Tokyo, Japan",
-        Q79945262 => "Tokyo, Japan",
-        Q52878121 => "Dezhou, Shandong, China",
-        Q30130018 => "Sydney, New South Wales, Australia",
-        Q30131050 => "Paris, France",
-        Q30127147 => "Ghent, Belgium",
-        Q28874593 => "Brussels, Belgium",
-        Q26709080 => "Wilhelmsfeld, Germany",
-        Q23854678 => "Berlin, Germany",
-        Q56810749 => "Vienna, Austria",
-        Q63349729 => "Washington, D.C., United States",
-        Q30133244 => "Chicago, Illinois, United States",
-        Q30129474 => "Carson, California, United States",
-        Q60232924 => "Jersey City, New Jersey, United States",
-        Q60458584 => "Waipahu, Hawaii, United States",
-        Q52984027 => "Guam, United States",
+        Q30130266 => 'Tokyo, Japan',
+        Q79945262 => 'Tokyo, Japan',
+        Q52878121 => 'Dezhou, Shandong, China',
+        Q30130018 => 'Sydney, New South Wales, Australia',
+        Q30131050 => 'Paris, France',
+        Q30127147 => 'Ghent, Belgium',
+        Q28874593 => 'Brussels, Belgium',
+        Q26709080 => 'Wilhelmsfeld, Germany',
+        Q23854678 => 'Berlin, Germany',
+        Q56810749 => 'Vienna, Austria',
+        Q63349729 => 'Washington, D.C., United States',
+        Q30133244 => 'Chicago, Illinois, United States',
+        Q30129474 => 'Carson, California, United States',
+        Q60232924 => 'Jersey City, New Jersey, United States',
+        Q60458584 => 'Waipahu, Hawaii, United States',
+        Q52984027 => 'Guam, United States',
     },
 };
 use constant VALID_LANGUAGES => { map {($_, 1)} @{(ORDERED_LANGUAGES)} };
 
-binmode STDIN , ":encoding(UTF-8)";
-binmode STDOUT, ":encoding(UTF-8)";
-binmode STDERR, ":encoding(UTF-8)";
+binmode STDIN , ':encoding(UTF-8)';
+binmode STDOUT, ':encoding(UTF-8)';
+binmode STDERR, ':encoding(UTF-8)';
 
 my $Log_Level = 1;
 
@@ -150,7 +150,7 @@ my @steps = (
         title                => 'photo metadata',
         is_wdqs_step         => undef,
 
-        process_datum        => \&query_photo_metadata,
+        process_datum        => \&query_marker_photos_metadata,
         callback             => \&process_photo_metadata,
     },
     {
@@ -173,7 +173,7 @@ my $num_markers;
 my $sparql_values;
 
 my $ua = LWP::UserAgent->new;
-$ua->default_header(Accept => "text/csv");
+$ua->default_header(Accept => 'text/csv');
 
 foreach my $step (@steps) {
 
@@ -206,18 +206,19 @@ foreach my $step (@steps) {
 
     if (exists $step->{set_helper_vars}) {
         $num_markers = scalar keys %Data;
-        $sparql_values = "VALUES ?marker { " . join(" ", map { "wd:" . $_ } keys %Data) . " }";
+        my $qid_list = join(' ', map { "wd:$_" } keys %Data);
+        $sparql_values = "VALUES ?marker { $qid_list }";
     }
 }
 
 
-say "INFO: Marshalling data structure into final format...";
+say 'INFO: Marshalling data structure into final format...';
 while (my ($qid, $marker_data) = each %Data) {
     if (
         $marker_data->{num_plaques} > 1 or
         scalar keys %{$marker_data->{details}} == 1
     ) {
-        if (ref($marker_data->{photo}) eq "ARRAY") {
+        if (ref($marker_data->{photo}) eq 'ARRAY') {
             shift @{$marker_data->{photo}};
         }
         foreach my $lang_code (keys %{$marker_data->{details}}) {
@@ -229,7 +230,7 @@ while (my ($qid, $marker_data) = each %Data) {
             }
             if (
                 $marker_data->{num_plaques} == 1 or
-                ref($marker_data->{photo}) eq "ARRAY"
+                ref($marker_data->{photo}) eq 'ARRAY'
             ) {
                 $hash_ref->{photo} = $marker_data->{photo} if exists $marker_data->{photo};
                 delete $marker_data->{photo};
@@ -250,9 +251,9 @@ while (my ($qid, $marker_data) = each %Data) {
     delete $marker_data->{has_no_title} if exists $marker_data->{has_no_title};
 }
 
-say "INFO: Comparing with control data...";
+say 'INFO: Comparing with control data...';
 
-my $control_json = read_file("control_data.json");
+my $control_json = read_file('control_data.json');
 my $control_data = decode_json($control_json);
 my @control_qids = keys %$control_data;
 
@@ -262,18 +263,18 @@ my %actual_data;
 my $expected_json = JSON->new->utf8->pretty->canonical->encode($control_data);
 my $actual_json   = JSON->new->utf8->pretty->canonical->encode(\%actual_data);
 
-write_file("tmp_expected.json", $expected_json);
-write_file("tmp_actual.json"  , $actual_json  );
+write_file('tmp_expected.json', $expected_json);
+write_file('tmp_actual.json'  , $actual_json  );
 
 my $diff = `diff tmp_expected.json tmp_actual.json`;
 if ($diff) {
     say $diff;
-    die "ERROR: Mismatch with control data";
+    die 'ERROR: Mismatch with control data';
 }
 
-unlink("tmp_expected.json", "tmp_actual.json");
-write_file("data.json", encode_json(\%Data));
-say "INFO: Data successfully compiled!";
+unlink('tmp_expected.json', 'tmp_actual.json');
+write_file('data.json', encode_json(\%Data));
+say 'INFO: Data successfully compiled!';
 
 
 sub get_initial_data_spaql_query {
@@ -368,8 +369,8 @@ sub post_process_initial_data {
             $marker_data->{lon} = [sum(@{$marker_data->{lon}}) / $num_plaques];
         }
 
-        $marker_data->{lat} = sprintf("%.5f", $marker_data->{lat}[0]) + 0;
-        $marker_data->{lon} = sprintf("%.5f", $marker_data->{lon}[0]) + 0;
+        $marker_data->{lat} = sprintf('%.5f', $marker_data->{lat}[0]) + 0;
+        $marker_data->{lon} = sprintf('%.5f', $marker_data->{lon}[0]) + 0;
     }
 }
 
@@ -571,8 +572,8 @@ sub process_address_data_csv_record {
             my $region_name = $admin_labels[$level];
 
             # Apply region name substitutions
-            $region_name = "Bangsamoro" if $region_name eq "Bangsamoro Autonomous Region";
-            $region_name = "Cordillera" if $region_name eq "Cordillera Administrative Region";
+            $region_name = 'Bangsamoro' if $region_name eq 'Bangsamoro Autonomous Region';
+            $region_name = 'Cordillera' if $region_name eq 'Cordillera Administrative Region';
 
             if (exists $marker_data->{region}) {
                 # Assume that a marker can only have at most 2 regions
@@ -583,19 +584,19 @@ sub process_address_data_csv_record {
             }
         }
     }
-    if ($country ne "Philippines") {
+    if ($country ne 'Philippines') {
         push @address_parts, $country;
         if (not OVERSEAS_MACRO_ADDRESS->{$marker_qid}) {
             push @error_msgs, "ERROR: [$marker_qid] Foreign marker has no macro address";
             return;
         }
         $marker_data->{macroAddress} = OVERSEAS_MACRO_ADDRESS->{$marker_qid};
-        $marker_data->{region} = "Overseas";
+        $marker_data->{region} = 'Overseas';
     }
     else {
-        $marker_data->{macroAddress} = join ", ", @macro_address_parts;
+        $marker_data->{macroAddress} = join ', ', @macro_address_parts;
     }
-    my $full_address = join ", ", @address_parts;
+    my $full_address = join ', ', @address_parts;
     $full_address =~ s/(^|, )([^, ]*)(?:, \2)+(, |$)/$1$2$3/g;
 
     if (exists $marker_data->{address}) {
@@ -793,14 +794,15 @@ sub query_long_inscription {
 
     say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
     my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => "application/json");
+    $ua->default_header(Accept => 'application/json');
     my $response = $ua->post(WIKIDATA_API_URL, {
-        format => "json",
-        action => "query",
-        prop   => "revisions",
-        rvprop => "content",
-        titles => "Talk:" . $qid,
+        format => 'json',
+        action => 'query',
+        prop   => 'revisions',
+        rvprop => 'content',
+        titles => "Talk:$qid",
     });
+
     my $response_raw = decode_json($response->decoded_content);
     my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
     if ($page_id == -1) {
@@ -808,7 +810,7 @@ sub query_long_inscription {
     }
     else {
         my @return_data;
-        my $contents = $response_raw->{query}{pages}{$page_id}{revisions}[0]{"*"};
+        my $contents = $response_raw->{query}{pages}{$page_id}{revisions}[0]{'*'};
         while ($contents =~ /\{\{\s*LongInscription(.+?)}}/sg) {
             my $template_text = $1;
             my ($lang_qid   ) = $template_text =~ /\|\s*langqid\s*=\s*(Q[0-9]+)/s;
@@ -921,10 +923,10 @@ EOQ
 sub process_photo_data_csv_record {
 
     my $marker_qid         = shift;
-    my $photo_filename     = decode("UTF-8", uri_unescape(shift @_));
+    my $photo_filename     = decode('UTF-8', uri_unescape(shift @_));
     my $lang_qid           = shift;
     my $ordinal            = shift;
-    my $loc_photo_filename = decode("UTF-8", uri_unescape(shift @_));
+    my $loc_photo_filename = decode('UTF-8', uri_unescape(shift @_));
 
     my $marker_data = $Data{$marker_qid};
 
@@ -981,68 +983,112 @@ sub process_photo_data_csv_record {
     }
 }
 
-sub query_photo_metadata {
+sub query_marker_photos_metadata {
 
     my $pm          = shift;
     my $qid         = shift;
     my $marker_data = shift;
 
-    if ($marker_data->{locPhoto}) {
-        if ($pm->start($qid) == 0) {
-            my $photo_data = get_photo_data($qid, $marker_data->{locPhoto}{file});
-            $pm->finish(0, ["locPhoto", $photo_data]);
+    # Get metadata for the marker's photo(s)
+    if ($marker_data->{num_plaques} == 1) {
+        if ($marker_data->{photo} and $pm->start($qid) == 0) {
+            my $metadata = get_photo_metadata($qid, $marker_data->{photo}{file});
+            $pm->finish(0, ['photo', $metadata]);
         }
     }
-    if ($marker_data->{num_plaques} == 1) {
-        if ($marker_data->{photo}) {
-            if ($pm->start($qid) == 0) {
-                my $photo_data = get_photo_data($qid, $marker_data->{photo}{file});
-                $pm->finish(0, ["photo", $photo_data]);
+    elsif ($marker_data->{photo}) {
+        foreach my $idx (1..scalar @{$marker_data->{photo}}) {
+            if ($marker_data->{photo}[$idx] and $pm->start($qid) == 0) {
+                my $metadata = get_photo_metadata($qid, $marker_data->{photo}[$idx]{file});
+                $pm->finish(0, [$idx, $metadata]);
             }
         }
     }
     else {
-        if ($marker_data->{photo}) {
-            foreach my $idx (1..scalar @{$marker_data->{photo}}) {
-                if ($marker_data->{photo}[$idx]) {
-                    if ($pm->start($qid) == 0) {
-                        my $photo_data = get_photo_data($qid, $marker_data->{photo}[$idx]{file});
-                        $pm->finish(0, [$idx, $photo_data]);
-                    }
-                }
+        foreach my $lang_code (keys %{$marker_data->{details}}) {
+            if ($marker_data->{details}{$lang_code}{photo} and $pm->start($qid) == 0) {
+                my $metadata = get_photo_metadata($qid, $marker_data->{details}{$lang_code}{photo}{file});
+                $pm->finish(0, [$lang_code, $metadata]);
             }
         }
-        else {
-            foreach my $lang_code (keys %{$marker_data->{details}}) {
-                if ($marker_data->{details}{$lang_code}{photo}) {
-                    if ($pm->start($qid) == 0) {
-                        my $photo_data = get_photo_data($qid, $marker_data->{details}{$lang_code}{photo}{file});
-                        $pm->finish(0, [$lang_code, $photo_data]);
-                    }
-                }
-            }
+    }
+
+    # Get metadata for the marker vicinity photo
+    if ($marker_data->{locPhoto}) {
+        if ($pm->start($qid) == 0) {
+            my $metadata = get_photo_metadata($qid, $marker_data->{locPhoto}{file});
+            $pm->finish(0, ['locPhoto', $metadata]);
         }
     }
 }
 
-sub process_photo_metadata {
-    my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $data_ref) = @_;
-    return if not defined $data_ref;
-    my ($type, $raw_data) = @$data_ref;
-    my ($width, $height, $credit) = split /\|/, $raw_data, 3;
-    my $photo_data;
-    if ($type eq "locPhoto") {
-        $photo_data = $Data{$ident}{locPhoto};
+sub get_photo_metadata {
+
+    my $qid            = shift;
+    my $photo_filename = shift;
+
+    say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
+
+    my $ua = LWP::UserAgent->new;
+    $ua->default_header(Accept => 'application/json');
+    my $response = $ua->post(COMMONS_API_URL, {
+        format => 'json',
+        action => 'query',
+        prop   => 'imageinfo',
+        iiprop => 'extmetadata|size',
+        titles => "File:$photo_filename",
+    });
+
+    my $response_raw = decode_json($response->decoded_content);
+    my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
+    my $info = $response_raw->{query}{pages}{$page_id}{imageinfo}[0];
+
+    my $width    = $info->{width      };
+    my $height   = $info->{height     };
+
+    # Construct credit string parts
+    my $metadata = $info->{extmetadata};
+    my $author = $metadata->{Artist}{value};
+    if (not $author) {
+        say "WARN: [$qid] Photo author is missing";
     }
-    elsif ($type eq "photo") {
-        $photo_data = $Data{$ident}{photo};
+    $author =~ s/<[^>]+>//g;
+    $author =~ s/\n//g;
+    my $license = '';
+    if (exists $metadata->{AttributionRequired} and $metadata->{AttributionRequired}{value} eq 'true') {
+        $license = $metadata->{LicenseShortName}{value};
+        $license =~ s/ / /g;  # non-breaking space
+        $license =~ s/-/‑/g;  # Non-breaking hyphen
+        $license = " {$license}";
+    }
+
+    return "$width|$height|$author$license";
+}
+
+sub process_photo_metadata {
+
+    my ($pid, $exit_code, $qid, $exit_signal, $core_dump, $data_ref) = @_;
+    return if not defined $data_ref;
+
+    # Parse the metadata
+    my ($type, $coded_metadata) = @$data_ref;
+    my ($width, $height, $credit) = split /\|/, $coded_metadata, 3;
+
+    # Get the corresponding marker's photo data hashref
+    my $photo_data;
+    if ($type eq 'locPhoto') {
+        $photo_data = $Data{$qid}{locPhoto};
+    }
+    elsif ($type eq 'photo') {
+        $photo_data = $Data{$qid}{photo};
     }
     elsif ($type =~ /^\d+$/) {
-        $photo_data = $Data{$ident}{photo}[$type];
+        $photo_data = $Data{$qid}{photo}[$type];
     }
-    else {
-        $photo_data = $Data{$ident}{details}{$type}{photo};
+    else {  # language code
+        $photo_data = $Data{$qid}{details}{$type}{photo};
     }
+
     $photo_data->{width } = $width  + 0;
     $photo_data->{height} = $height + 0;
     $photo_data->{credit} = $credit;
@@ -1068,17 +1114,11 @@ sub process_commemorates_data_csv_record {
 
     my $marker_qid = shift;
     my $label      = shift;
-    my $title      = decode("UTF-8", uri_unescape(shift @_)) =~ s/_/ /gr;
+    my $title      = decode('UTF-8', uri_unescape(shift @_)) =~ s/_/ /gr;
 
     my $marker_data = $Data{$marker_qid};
-
     $marker_data->{wikipedia} //= {};
-    if ($label eq $title) {
-        $marker_data->{wikipedia}{$label} = JSON::true;
-    }
-    else {
-        $marker_data->{wikipedia}{$label} = $title;
-    }
+    $marker_data->{wikipedia}{$label} = $label eq $title ? JSON::true : $title;
 }
 
 sub get_category_data_sparql_query {
@@ -1154,42 +1194,4 @@ sub process_inscription {
     }
 
     return;
-}
-
-sub get_photo_data {
-
-    my $qid            = shift;
-    my $photo_filename = shift;
-
-    say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
-
-    my $ua = LWP::UserAgent->new;
-    $ua->default_header(Accept => "application/json");
-    my $response = $ua->post(COMMONS_API_URL, {
-        format => "json",
-        action => "query",
-        prop   => "imageinfo",
-        iiprop => "extmetadata|size",
-        titles => "File:" . $photo_filename,
-    });
-    my $response_raw = decode_json($response->decoded_content);
-    my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
-    my $info = $response_raw->{query}{pages}{$page_id}{imageinfo}[0];
-    my $width    = $info->{width      };
-    my $height   = $info->{height     };
-    my $metadata = $info->{extmetadata};
-    my $author = $metadata->{Artist}{value};
-    if (not $author) {
-        say "WARN: [$qid] Photo author is missing";
-    }
-    $author =~ s/<[^>]+>//g;
-    $author =~ s/\n//g;
-    my $license = "";
-    if (exists $metadata->{AttributionRequired} and $metadata->{AttributionRequired}{value} eq "true") {
-        $license = $metadata->{LicenseShortName}{value};
-        $license =~ s/ / /g;  # non-breaking space
-        $license =~ s/-/‑/g;  # Non-breaking hyphen
-        $license = " {$license}";
-    }
-    return "$width|$height|$author$license";
 }
