@@ -89,12 +89,6 @@ my $Log_Level = 1;
 my %Data;
 my @Error_Msgs;
 
-my $num_markers;
-my $sparql_values;
-
-my $ua = LWP::UserAgent->new;
-$ua->default_header(Accept => 'text/csv');
-
 query_data();
 finalize_data();
 check_against_control_data();
@@ -175,6 +169,12 @@ sub query_data {
             csv_record_processor => \&process_category_data_csv_record,
         },
     );
+
+    my $sparql_values;
+    my $num_markers;
+
+    my $ua = LWP::UserAgent->new;
+    $ua->default_header(Accept => 'text/csv');
 
     foreach my $step (@steps) {
 
@@ -830,24 +830,21 @@ sub query_long_inscription {
     $pm->start($qid) and return;
 
     say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
-    my $forked_ua = LWP::UserAgent->new;
-    $forked_ua->default_header(Accept => 'application/json');
-    my $response = $forked_ua->post(WIKIDATA_API_URL, {
-        format => 'json',
-        action => 'query',
-        prop   => 'revisions',
-        rvprop => 'content',
-        titles => "Talk:$qid",
-    });
 
-    my $response_raw = decode_json($response->decoded_content);
-    my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
-    if ($page_id == -1) {
+    my $api_data = query_wikimedia_api(
+        WIKIDATA_API_URL,
+        {
+            prop   => 'revisions',
+            rvprop => 'content',
+            titles => "Talk:$qid",
+        },
+    );
+    if (not defined $api_data) {
         $pm->finish(0);
     }
     else {
         my @return_data;
-        my $contents = $response_raw->{query}{pages}{$page_id}{revisions}[0]{'*'};
+        my $contents = $api_data->{revisions}[0]{'*'};
         while ($contents =~ /\{\{\s*LongInscription(.+?)}}/sg) {
             my $template_text = $1;
             my ($lang_qid   ) = $template_text =~ /\|\s*langqid\s*=\s*(Q[0-9]+)/s;
@@ -1087,22 +1084,18 @@ sub get_photo_metadata {
 
     say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
 
-    my $forked_ua = LWP::UserAgent->new;
-    $forked_ua->default_header(Accept => 'application/json');
-    my $response = $forked_ua->post(COMMONS_API_URL, {
-        format => 'json',
-        action => 'query',
-        prop   => 'imageinfo',
-        iiprop => 'extmetadata|size',
-        titles => "File:$photo_filename",
-    });
+    my $api_data = query_wikimedia_api(
+        COMMONS_API_URL,
+        {
+            prop   => 'imageinfo',
+            iiprop => 'extmetadata|size',
+            titles => "File:$photo_filename",
+        },
+    );
+    my $info = $api_data->{imageinfo}[0];
 
-    my $response_raw = decode_json($response->decoded_content);
-    my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
-    my $info = $response_raw->{query}{pages}{$page_id}{imageinfo}[0];
-
-    my $width    = $info->{width      };
-    my $height   = $info->{height     };
+    my $width    = $info->{width };
+    my $height   = $info->{height};
 
     # Construct credit string parts
     my $metadata = $info->{extmetadata};
@@ -1215,7 +1208,7 @@ sub process_category_data_csv_record {
 }
 
 # ===================================================================
-# UTILITY SUBROUTINES
+# UTILITY SUBROUTINES/FUNCTIONS
 # ===================================================================
 
 sub parse_csv {
@@ -1228,6 +1221,29 @@ sub parse_csv {
     }
     shift @output;  # Discard header row
     return @output;
+}
+
+# -------------------------------------------------------------------
+
+sub query_wikimedia_api {
+
+    my $api_url     = shift;
+    my $extra_props = shift;
+
+    # Query API
+    my $ua = LWP::UserAgent->new;
+    $ua->default_header(Accept => 'application/json');
+    my %post_body = (
+        format => 'json',
+        action => 'query',
+        %$extra_props,
+    );
+    my $response = $ua->post($api_url, \%post_body);
+
+    # Parse and return API response (return undef if data is not found)
+    my $response_raw = decode_json($response->decoded_content);
+    my $page_id = +(keys %{$response_raw->{query}{pages}})[0];
+    return $page_id == -1 ? undef : $response_raw->{query}{pages}{$page_id};
 }
 
 # -------------------------------------------------------------------
