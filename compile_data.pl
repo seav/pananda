@@ -87,6 +87,7 @@ binmode STDERR, ':encoding(UTF-8)';
 my $Log_Level = 1;
 
 my %Data;
+my %Photo_Metadata;
 my @Error_Msgs;
 
 query_data();
@@ -153,10 +154,12 @@ sub query_data {
             csv_record_processor => \&process_photo_data_csv_record,
         },
         {
-            is_wdqs_step         => undef,
+            is_wdqs_step         => 1,
+            is_mwapi_step        => 1,
             title                => 'photo metadata',
-            process_datum        => \&query_marker_photos_metadata,
-            callback             => \&process_photo_metadata,
+            sparql_query         => get_photo_metadata_sparql_query(),
+            titles_generator     => \&get_photo_metadata_titles,
+            csv_record_processor => \&process_photo_metadata_csv_record,
         },
         {
             is_wdqs_step         => 1,
@@ -184,18 +187,34 @@ sub query_data {
 
         # Step queries WDQS
         if ($step->{is_wdqs_step}) {
+
+            my @queries;
             my $sparql_query = $step->{sparql_query};
             if (exists $step->{is_mwapi_step}) {
                 my $titles = $step->{titles_generator}->();
-                $sparql_query =~ s/<<titles>>/$titles/;
+                if (ref($titles) eq 'ARRAY') {
+                    @queries = map { $sparql_query =~ s/<<titles>>/$_/r } @$titles;
+                }
+                else {
+                    push @queries, $sparql_query =~ s/<<titles>>/$titles/r;
+                }
             }
             else {
-                $sparql_query =~ s/<<sparql_values>>/$sparql_values/;
+                push @queries, $sparql_query =~ s/<<sparql_values>>/$sparql_values/r;
             }
-            my $response = $ua->post(WDQS_URL, {query => $sparql_query});
-            foreach my $csv_record (parse_csv($response->decoded_content)) {
-                $step->{csv_record_processor}->($csv_record);
+
+            my $num_queries = scalar @queries;
+            my $progress;
+            $progress = Term::ProgressBar->new({count => $num_queries}) if $Log_Level == 1 and $num_queries > 1;
+            my $num_queries_processed = 0;
+            foreach my $query (@queries) {
+                my $response = $ua->post(WDQS_URL, {query => $query});
+                foreach my $csv_record (parse_csv($response->decoded_content)) {
+                    $step->{csv_record_processor}->($csv_record);
+                }
+                $progress->update(++$num_queries_processed) if $progress and $Log_Level == 1;
             }
+
             $step->{post_processor}->() if exists $step->{post_processor};
         }
 
@@ -843,7 +862,6 @@ EOQ
 # -------------------------------------------------------------------
 
 sub get_long_inscription_titles {
-
     my @titles;
     while (my ($qid, $marker_data) = each %Data) {
         foreach my $l10n_detail (values %{$marker_data->{details}}) {
@@ -1042,117 +1060,103 @@ sub process_photo_data_csv_record {
 
 # ===================================================================
 
-sub query_marker_photos_metadata {
-
-    my $pm          = shift;
-    my $qid         = shift;
-    my $marker_data = shift;
-
-    # Get metadata for the marker's photo(s)
-    if ($marker_data->{num_plaques} == 1) {
-        if ($marker_data->{photo} and $pm->start($qid) == 0) {
-            my $metadata = get_photo_metadata($qid, $marker_data->{photo}{file});
-            $pm->finish(0, ['photo', $metadata]);
-        }
-    }
-    elsif ($marker_data->{photo}) {
-        foreach my $idx (1..scalar @{$marker_data->{photo}}) {
-            if ($marker_data->{photo}[$idx] and $pm->start($qid) == 0) {
-                my $metadata = get_photo_metadata($qid, $marker_data->{photo}[$idx]{file});
-                $pm->finish(0, [$idx, $metadata]);
-            }
-        }
-    }
-    else {
-        foreach my $lang_code (keys %{$marker_data->{details}}) {
-            if ($marker_data->{details}{$lang_code}{photo} and $pm->start($qid) == 0) {
-                my $metadata = get_photo_metadata($qid, $marker_data->{details}{$lang_code}{photo}{file});
-                $pm->finish(0, [$lang_code, $metadata]);
-            }
-        }
-    }
-
-    # Get metadata for the marker vicinity photo
-    if ($marker_data->{locPhoto}) {
-        if ($pm->start($qid) == 0) {
-            my $metadata = get_photo_metadata($qid, $marker_data->{locPhoto}{file});
-            $pm->finish(0, ['locPhoto', $metadata]);
-        }
-    }
-
-    return;
+sub get_photo_metadata_sparql_query {
+    return << 'EOQ';
+SELECT ?filename ?width ?height ?author ?attrRequired ?license WHERE {
+  SERVICE wikibase:mwapi {
+    bd:serviceParam wikibase:api "Generator";
+                    wikibase:endpoint "commons.wikimedia.org";
+                    mwapi:generator "revisions";
+                    mwapi:prop "imageinfo";
+                    mwapi:iiprop "extmetadata|size";
+                    mwapi:titles "<<titles>>" .
+    ?title wikibase:apiOutput mwapi:title .
+    ?width        wikibase:apiOutput "imageinfo/ii/@width"  .
+    ?height       wikibase:apiOutput "imageinfo/ii/@height" .
+    ?author       wikibase:apiOutput "imageinfo/ii/extmetadata/Artist/@value" .
+    ?attrRequired wikibase:apiOutput "imageinfo/ii/extmetadata/AttributionRequired/@value" .
+    ?license      wikibase:apiOutput "imageinfo/ii/extmetadata/LicenseShortName/@value" .
+  }
+  BIND(SUBSTR(?title, 6) AS ?filename) .
+}
+EOQ
 }
 
 # -------------------------------------------------------------------
 
-sub get_photo_metadata {
+sub get_photo_metadata_titles {
 
-    my $qid            = shift;
-    my $photo_filename = shift;
+    my @titles;
+    while (my ($qid, $marker_data) = each %Data) {
 
-    say "INFO: [$qid] Fetching credit for $photo_filename" if $Log_Level > 1;
+        # Get metadata for the marker's photo(s)
+        if ($marker_data->{num_plaques} == 1) {
+            if ($marker_data->{photo}) {
+                my $filename = $marker_data->{photo}{file};
+                $Photo_Metadata{$filename} = $marker_data->{photo};
+                push @titles, "File:$filename";
+            }
+        }
+        elsif ($marker_data->{photo}) {
+            foreach my $idx (1..scalar @{$marker_data->{photo}}) {
+                if ($marker_data->{photo}[$idx]) {
+                    my $filename = $marker_data->{photo}[$idx]{file};
+                    $Photo_Metadata{$filename} = $marker_data->{photo}[$idx];
+                    push @titles, "File:$filename";
+                }
+            }
+        }
+        else {
+            foreach my $lang_code (keys %{$marker_data->{details}}) {
+                if ($marker_data->{details}{$lang_code}{photo}) {
+                    my $filename = $marker_data->{details}{$lang_code}{photo}{file};
+                    $Photo_Metadata{$filename} = $marker_data->{details}{$lang_code}{photo};
+                    push @titles, "File:$filename";
+                }
+            }
+        }
 
-    my $api_data = query_wikimedia_api(
-        COMMONS_API_URL,
-        {
-            prop   => 'imageinfo',
-            iiprop => 'extmetadata|size',
-            titles => "File:$photo_filename",
-        },
-    );
-    my $info = $api_data->{imageinfo}[0];
-
-    my $width    = $info->{width };
-    my $height   = $info->{height};
-
-    # Construct credit string parts
-    my $metadata = $info->{extmetadata};
-    my $author = $metadata->{Artist}{value};
-    if (not $author) {
-        say "WARN: [$qid] Photo author is missing";
+        # Get metadata for the marker vicinity photo
+        if ($marker_data->{locPhoto}) {
+            my $filename = $marker_data->{locPhoto}{file};
+            $Photo_Metadata{$filename} = $marker_data->{locPhoto};
+            push @titles, "File:$filename";
+        }
     }
+
+    # Group into chunks of 20 files to avoid MediaWiki API 'URI too long' error
+    foreach (@titles) { s/"/\\"/g }
+    my @chunks;
+    push @chunks, [splice @titles, 0, 40] while @titles;
+    foreach (@chunks) { $_ = join '|', @$_ }
+    return \@chunks;
+}
+
+# -------------------------------------------------------------------
+
+sub process_photo_metadata_csv_record {
+
+    my $csv_record = shift;
+    my ($filename, $width, $height, $author, $needs_attr, $license) = @$csv_record;
+
+    say "WARN: [$filename] Photo author is missing" if (not $author);
     $author =~ s/<[^>]+>//g;
     $author =~ s/\n//g;
-    my $license = '';
-    if (exists $metadata->{AttributionRequired} and $metadata->{AttributionRequired}{value} eq 'true') {
-        $license = $metadata->{LicenseShortName}{value};
+
+    if ($needs_attr eq 'false') {
+        $license = '';
+    }
+    else {
         $license =~ s/ / /g;  # non-breaking space
         $license =~ s/-/‑/g;  # Non-breaking hyphen
         $license = " {$license}";
     }
 
-    return "$width|$height|$author$license";
-}
+    my $credit = "$author$license";
 
-# -------------------------------------------------------------------
-
-sub process_photo_metadata {  ## no critic (ProhibitManyArgs)
-
-    my (undef, undef, $qid, undef, undef, $data_ref) = @_;
-    return if not defined $data_ref;
-
-    # Parse the metadata
-    my ($type, $coded_metadata) = @$data_ref;
-    my ($width, $height, $credit) = split /\|/, $coded_metadata, 3;
-
-    # Get the corresponding marker's photo data hashref
-    my $photo_data;
-    if ($type eq 'locPhoto') {
-        $photo_data = $Data{$qid}{locPhoto};
-    }
-    elsif ($type eq 'photo') {
-        $photo_data = $Data{$qid}{photo};
-    }
-    elsif ($type =~ /^\d+$/) {
-        $photo_data = $Data{$qid}{photo}[$type];
-    }
-    else {  # language code
-        $photo_data = $Data{$qid}{details}{$type}{photo};
-    }
-
-    $photo_data->{width } = $width  + 0;
-    $photo_data->{height} = $height + 0;
-    $photo_data->{credit} = $credit;
+    $Photo_Metadata{$filename}{width } = $width  + 0;
+    $Photo_Metadata{$filename}{height} = $height + 0;
+    $Photo_Metadata{$filename}{credit} = $credit;
 
     return;
 }
