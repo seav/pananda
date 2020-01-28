@@ -12,7 +12,6 @@ use File::Slurp;
 use JSON;
 use List::Util qw(sum);
 use LWP::UserAgent ();
-use Parallel::ForkManager 0.007006;
 use Term::ProgressBar;
 use Text::CSV;
 use URI::Escape;
@@ -107,7 +106,6 @@ sub query_data {
 
     my @steps = (
         {
-            is_wdqs_step         => 1,
             title                => 'initial marker data with coordinates',
             sparql_query         => get_initial_data_spaql_query(),
             csv_record_processor => \&process_initial_data_csv_record,
@@ -115,26 +113,22 @@ sub query_data {
             set_helper_vars      => 1,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'address data',
             sparql_query         => get_address_data_sparql_query(),
             csv_record_processor => \&process_address_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'title data',
             sparql_query         => get_title_data_sparql_query(),
             csv_record_processor => \&process_title_data_csv_record,
             post_processor       => \&post_process_title_data,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'short inscription data',
             sparql_query         => get_inscription_data_sparql_query(),
             csv_record_processor => \&process_inscription_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             is_mwapi_step        => 1,
             title                => 'long inscription data',
             sparql_query         => get_long_inscription_sparql_query(),
@@ -142,19 +136,16 @@ sub query_data {
             csv_record_processor => \&process_long_inscription_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'unveiling date data',
             sparql_query         => get_unveiling_data_sparql_query(),
             csv_record_processor => \&process_unveiling_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'photo data',
             sparql_query         => get_photo_data_sparql_query(),
             csv_record_processor => \&process_photo_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             is_mwapi_step        => 1,
             title                => 'photo metadata',
             sparql_query         => get_photo_metadata_sparql_query(),
@@ -162,13 +153,11 @@ sub query_data {
             csv_record_processor => \&process_photo_metadata_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'commemorates-Wikipedia data',
             sparql_query         => get_commemorates_data_sparql_query(),
             csv_record_processor => \&process_commemorates_data_csv_record,
         },
         {
-            is_wdqs_step         => 1,
             title                => 'Commons category data',
             sparql_query         => get_category_data_sparql_query(),
             csv_record_processor => \&process_category_data_csv_record,
@@ -185,52 +174,34 @@ sub query_data {
 
         say "INFO: Fetching and processing $step->{title}...";
 
-        # Step queries WDQS
-        if ($step->{is_wdqs_step}) {
-
-            my @queries;
-            my $sparql_query = $step->{sparql_query};
-            if (exists $step->{is_mwapi_step}) {
-                my $titles = $step->{titles_generator}->();
-                if (ref($titles) eq 'ARRAY') {
-                    @queries = map { $sparql_query =~ s/<<titles>>/$_/r } @$titles;
-                }
-                else {
-                    push @queries, $sparql_query =~ s/<<titles>>/$titles/r;
-                }
+        my @queries;
+        my $sparql_query = $step->{sparql_query};
+        if (exists $step->{is_mwapi_step}) {
+            my $titles = $step->{titles_generator}->();
+            if (ref($titles) eq 'ARRAY') {
+                @queries = map { $sparql_query =~ s/<<titles>>/$_/r } @$titles;
             }
             else {
-                push @queries, $sparql_query =~ s/<<sparql_values>>/$sparql_values/r;
+                push @queries, $sparql_query =~ s/<<titles>>/$titles/r;
             }
-
-            my $num_queries = scalar @queries;
-            my $progress;
-            $progress = Term::ProgressBar->new({count => $num_queries}) if $Log_Level == 1 and $num_queries > 1;
-            my $num_queries_processed = 0;
-            foreach my $query (@queries) {
-                my $response = $ua->post(WDQS_URL, {query => $query});
-                foreach my $csv_record (parse_csv($response->decoded_content)) {
-                    $step->{csv_record_processor}->($csv_record);
-                }
-                $progress->update(++$num_queries_processed) if $progress and $Log_Level == 1;
-            }
-
-            $step->{post_processor}->() if exists $step->{post_processor};
         }
-
-        # Step queries other Wikimedia APIs via parallel processing
         else {
-            my $progress;
-            $progress = Term::ProgressBar->new({count => $num_markers}) if $Log_Level == 1;
-            my $pm = Parallel::ForkManager->new(32);
-            $pm->run_on_finish($step->{callback});
-            my $num_markers_processed = 0;
-            while (my ($qid, $marker_data) = each %Data) {
-                $progress->update(++$num_markers_processed) if $Log_Level == 1;
-                $step->{process_datum}->($pm, $qid, $marker_data);
-            }
-            $pm->wait_all_children;
+            push @queries, $sparql_query =~ s/<<sparql_values>>/$sparql_values/r;
         }
+
+        my $num_queries = scalar @queries;
+        my $progress;
+        $progress = Term::ProgressBar->new({count => $num_queries}) if $Log_Level == 1 and $num_queries > 1;
+        my $num_queries_processed = 0;
+        foreach my $query (@queries) {
+            my $response = $ua->post(WDQS_URL, {query => $query});
+            foreach my $csv_record (parse_csv($response->decoded_content)) {
+                $step->{csv_record_processor}->($csv_record);
+            }
+            $progress->update(++$num_queries_processed) if $progress and $Log_Level == 1;
+        }
+
+        $step->{post_processor}->() if exists $step->{post_processor};
 
         if (@Error_Msgs) {
             die join("\n", @Error_Msgs) . "\n";
