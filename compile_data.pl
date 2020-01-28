@@ -133,10 +133,12 @@ sub query_data {
             csv_record_processor => \&process_inscription_data_csv_record,
         },
         {
-            is_wdqs_step         => undef,
+            is_wdqs_step         => 1,
+            is_mwapi_step        => 1,
             title                => 'long inscription data',
-            process_datum        => \&query_long_inscription,
-            callback             => \&process_long_inscription,
+            sparql_query         => get_long_inscription_sparql_query(),
+            titles_generator     => \&get_long_inscription_titles,
+            csv_record_processor => \&process_long_inscription_data_csv_record,
         },
         {
             is_wdqs_step         => 1,
@@ -182,7 +184,14 @@ sub query_data {
 
         # Step queries WDQS
         if ($step->{is_wdqs_step}) {
-            my $sparql_query = $step->{sparql_query} =~ s/<<sparql_values>>/$sparql_values/r;
+            my $sparql_query = $step->{sparql_query};
+            if (exists $step->{is_mwapi_step}) {
+                my $titles = $step->{titles_generator}->();
+                $sparql_query =~ s/<<titles>>/$titles/;
+            }
+            else {
+                $sparql_query =~ s/<<sparql_values>>/$sparql_values/;
+            }
             my $response = $ua->post(WDQS_URL, {query => $sparql_query});
             foreach my $csv_record (parse_csv($response->decoded_content)) {
                 $step->{csv_record_processor}->($csv_record);
@@ -811,68 +820,67 @@ sub process_inscription_data_csv_record {
 
 # ===================================================================
 
-sub query_long_inscription {
-
-    my $pm          = shift;
-    my $qid         = shift;
-    my $marker_data = shift;
-
-    # Check if there are missing inscriptions
-    my $has_missing_inscription;
-    foreach my $l10n_detail (values %{$marker_data->{details}}) {
-        if (exists $l10n_detail->{inscription} and $l10n_detail->{inscription} eq '') {
-            $has_missing_inscription = 1;
-            last;
-        }
-    }
-    return if not $has_missing_inscription;
-
-    $pm->start($qid) and return;
-
-    say "INFO: [$qid] Attempting to fetch long inscriptions" if $Log_Level > 1;
-
-    my $api_data = query_wikimedia_api(
-        WIKIDATA_API_URL,
-        {
-            prop   => 'revisions',
-            rvprop => 'content',
-            titles => "Talk:$qid",
-        },
-    );
-    if (not defined $api_data) {
-        $pm->finish(0);
-    }
-    else {
-        my @return_data;
-        my $contents = $api_data->{revisions}[0]{'*'};
-        while ($contents =~ /\{\{\s*LongInscription(.+?)}}/sg) {
-            my $template_text = $1;
-            my ($lang_qid   ) = $template_text =~ /\|\s*langqid\s*=\s*(Q[0-9]+)/s;
-            my ($inscription) = $template_text =~ /\|\s*inscription\s*=\s*(.+?)(?:\||$)/s;
-            if (not exists LANGUAGE_CODE->{$lang_qid}) {
-                log_error($qid, "Inscription is in an unrecognized language ($lang_qid)");
-                return;
-            }
-            if (length $inscription <= WIKIDATA_MAX_STR_LENGTH) {
-                warn "WARNING: [$qid] \"Long\" inscription is <= " . WIKIDATA_MAX_STR_LENGTH . " characters in length";
-            }
-            push @return_data, [LANGUAGE_CODE->{$lang_qid}, $inscription];
-        }
-        $pm->finish(0, \@return_data);
-    }
-
-    return;
+sub get_long_inscription_sparql_query {
+    return << 'EOQ';
+SELECT ?markerQid ?content WHERE {
+  SERVICE wikibase:mwapi {
+    bd:serviceParam wikibase:api "Generator";
+                    wikibase:endpoint "www.wikidata.org";
+                    mwapi:generator "revisions";
+                    mwapi:prop "revisions";
+                    mwapi:rvprop "content";
+                    mwapi:rvslots "*";
+                    mwapi:titles "<<titles>>" .
+    ?title wikibase:apiOutput mwapi:title .
+    ?rawContent wikibase:apiOutput "revisions/rev/slots/slot/text()" . #
+  }
+  BIND(SUBSTR(?title, 6) AS ?markerQid) .
+  BIND(REPLACE(?rawContent, "\n", "") AS ?content) .
+}
+EOQ
 }
 
 # -------------------------------------------------------------------
 
-sub process_long_inscription {  ## no critic (ProhibitManyArgs)
-    my (undef, undef, $qid, undef, undef, $data_ref) = @_;
-    return if not defined $data_ref;
-    foreach my $inscription_datum (@$data_ref) {
-        my ($lang_code, $inscription) = @$inscription_datum;
-        process_inscription($qid, $inscription, $lang_code);
+sub get_long_inscription_titles {
+
+    my @titles;
+    while (my ($qid, $marker_data) = each %Data) {
+        foreach my $l10n_detail (values %{$marker_data->{details}}) {
+            if (exists $l10n_detail->{inscription} and $l10n_detail->{inscription} eq '') {
+                push @titles, "Talk:$qid";
+                last;
+            }
+        }
     }
+    return(join '|', @titles);
+}
+
+# -------------------------------------------------------------------
+
+sub process_long_inscription_data_csv_record {
+
+    my $csv_record = shift;
+    my ($qid, $talk_content) = @$csv_record;
+
+    my $marker_data = $Data{$qid};
+
+    return unless $talk_content;
+
+    while ($talk_content =~ /\{\{\s*LongInscription(.+?)}}/sg) {
+        my $template_text = $1;
+        my ($lang_qid   ) = $template_text =~ /\|\s*langqid\s*=\s*(Q[0-9]+)/s;
+        my ($inscription) = $template_text =~ /\|\s*inscription\s*=\s*(.+?)(?:\||$)/s;
+        if (not exists LANGUAGE_CODE->{$lang_qid}) {
+            log_error($qid, "Inscription is in an unrecognized language ($lang_qid)");
+            return;
+        }
+        if (length $inscription <= WIKIDATA_MAX_STR_LENGTH) {
+            warn "WARNING: [$qid] \"Long\" inscription is <= " . WIKIDATA_MAX_STR_LENGTH . " characters in length";
+        }
+        process_inscription($qid, $inscription, LANGUAGE_CODE->{$lang_qid});
+    }
+
     return;
 }
 
