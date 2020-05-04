@@ -43,13 +43,13 @@ use constant {
     WIKIDATA_API_URL          => 'https://www.wikidata.org/w/api.php',
     WIKIDATA_MAX_STR_LENGTH   => 1500,
     SKIPPED_ADDRESS_LABELS    => {
-        Q2863958 => 1,  # arrondissement of Paris
-        Q90870   => 1,  # Arrondissement of Brussels-Capital
-        Q240     => 1,  # Brussels-Capital Region
-        Q8165    => 1,  # Karlsruhe Government Region
-        Q2013767 => 1,  # Mitte (locality in Mitte)
-        Q132480  => 1,  # Kantō region
-        Q3551781 => 1,  # District of Columbia
+        Q2863958  => 1,  # arrondissement of Paris
+        Q90870    => 1,  # Arrondissement of Brussels-Capital
+        Q240      => 1,  # Brussels-Capital Region
+        Q8165     => 1,  # Karlsruhe Government Region
+        Q2013767  => 1,  # Mitte (locality in Mitte)
+        Q132480   => 1,  # Kantō region
+        Q3551781  => 1,  # District of Columbia
     },
     SKIP_ADDRESS_HAVING => {
         Q16665915 => 1,  # Metropolis of Greater Paris
@@ -1090,8 +1090,14 @@ sub get_photo_metadata_titles {
         # Get metadata for the marker vicinity photo
         if ($marker_data->{locPhoto}) {
             my $filename = $marker_data->{locPhoto}{file};
-            $Photo_Metadata{$filename} = $marker_data->{locPhoto};
-            push @titles, "File:$filename";
+            if (exists $Photo_Metadata{$filename}) {
+                # Reuse vicinity photo metadata for reused vicinity photos
+                $marker_data->{locPhoto} = $Photo_Metadata{$filename};
+            }
+            else {
+                $Photo_Metadata{$filename} = $marker_data->{locPhoto};
+                push @titles, "File:$filename";
+            }
         }
     }
 
