@@ -53,6 +53,7 @@ use constant {
     },
     SKIP_ADDRESS_HAVING => {
         Q16665915 => 1,  # Metropolis of Greater Paris
+        Q212429   => 1,  # Metropolitan France
     },
     ADDRESS_LABEL_REPLACEMENT => {
         Q245546 => '6th arrondissement',
