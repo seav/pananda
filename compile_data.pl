@@ -46,6 +46,7 @@ use constant {
         Q2863958  => 1,  # arrondissement of Paris
         Q90870    => 1,  # Arrondissement of Brussels-Capital
         Q240      => 1,  # Brussels-Capital Region
+        Q90948    => 1,  # Arrondissement of Ghent
         Q8165     => 1,  # Karlsruhe Government Region
         Q2013767  => 1,  # Mitte (locality in Mitte)
         Q132480   => 1,  # Kantō region
