@@ -882,8 +882,9 @@ function initMarkerDetails() {
 
   let top = $(this).find('#details-content');
 
+  $('#details .toolbar__title').append(info.name);
+
   let header = $('<header class="marker"></header>');
-  header.append(`<h1>${info.name}</h1>`);
   if (info.date !== true) header.append(generateMarkerDateElem(info.date));
   top.append(header);
 

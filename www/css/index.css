@@ -280,6 +280,15 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   margin-top: 16px;
 }
 
+#details .toolbar__left {
+  min-width: 48px;
+  width: 48px;
+}
+
+#details .toolbar__right {
+  min-width: 76px;
+}
+
 #details.visited          ons-toolbar-button[icon="md-eye"             ],
 #details:not(.visited)    ons-toolbar-button[icon="md-eye-off"         ],
 #details.bookmarked       ons-toolbar-button[icon="md-bookmark"        ],
@@ -292,6 +301,11 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 #details:not(.bookmarked) ons-toolbar-button[icon="md-bookmark"        ],
 #details.bookmarked       ons-toolbar-button[icon="md-bookmark-outline"] {
   display: none;
+}
+
+#details ons-toolbar-button[icon="md-eye"    ],
+#details ons-toolbar-button[icon="md-eye-off"] {
+  margin-left: 8px;
 }
 
 ons-toolbar-button[icon="md-bookmark-outline"] {
