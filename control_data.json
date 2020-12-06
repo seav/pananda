@@ -389,10 +389,10 @@
   "address": "Rizal Park, Magallanes Iraya Street cor. Justo Lukban Street, Daet, Camarines Norte",
   "locDesc": "The historical marker is located at the base of the monument.",
   "locPhoto": {
-    "file": "Oldest Jose Rizal Monument in Daet, Camarines Norte by Gina Meneses.jpg",
-    "credit": "Firehorse {CC BY‑SA 3.0}",
-    "width": 1944,
-    "height": 2896
+    "file": "Jose Rizal Monument-Daet-.JPG",
+    "credit": "User.Alhorin {CC BY‑SA 3.0}",
+    "width": 3648,
+    "height": 2736
   }
 },
 "Q24702612": {
@@ -528,6 +528,7 @@
   "wikipedia": {
     "Agoo Basilica": "Basilica Minore of Our Lady of Charity"
   },
+  "commons" : "Basilica_of_Our_Lady_of_Charity_historical_marker",
   "lat": 16.32294,
   "lon": 120.36743,
   "region": "Ilocos Region",
