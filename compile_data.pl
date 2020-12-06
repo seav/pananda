@@ -44,6 +44,7 @@ use constant {
     WIKIDATA_MAX_STR_LENGTH   => 1500,
     SKIPPED_ADDRESS_LABELS    => {
         Q2863958  => 1,  # arrondissement of Paris
+        Q88521107 => 1,  # ZDS Paris
         Q90870    => 1,  # Arrondissement of Brussels-Capital
         Q240      => 1,  # Brussels-Capital Region
         Q90948    => 1,  # Arrondissement of Ghent
