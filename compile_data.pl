@@ -9,7 +9,7 @@ use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
 use Encode;
 use File::Slurp;
-use JSON;
+use JSON::MaybeXS;
 use List::Util qw(sum);
 use LWP::UserAgent ();
 use Term::ProgressBar;
@@ -922,7 +922,7 @@ sub process_unveiling_data_csv_record {
             return;
         }
         $marker_data->{details}{LANGUAGE_CODE->{$lang_qid}}{date} = substr($date, 0, $precision == 11 ? 10 : 4);
-        $marker_data->{date} = JSON::true;
+        $marker_data->{date} = JSON()->true;
     }
     else {
         if (exists $marker_data->{details}{date}) {
@@ -1169,7 +1169,7 @@ sub process_commemorates_data_csv_record {
 
     my $marker_data = $Data{$qid};
     $marker_data->{wikipedia} //= {};
-    $marker_data->{wikipedia}{$label} = $label eq $title ? JSON::true : $title;
+    $marker_data->{wikipedia}{$label} = $label eq $title ? JSON()->true : $title;
 
     return;
 }

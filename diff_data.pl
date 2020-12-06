@@ -6,7 +6,7 @@ use 5.012;
 use feature "unicode_strings";
 
 use File::Slurp;
-use JSON;
+use JSON::MaybeXS;
 
 binmode STDOUT, ":encoding(UTF-8)";
 
