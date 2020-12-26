@@ -33,8 +33,8 @@ const MAX_PH_LAT              =  21.0;  // degrees
 const MIN_PH_LON              = 116.5;  // degrees
 const MAX_PH_LON              = 126.5;  // degrees
 const GPS_ZOOM_LEVEL          = 12;
-const CARD_WIDTH              = Math.floor($(window).width() - 48);  // pixels
-const PHOTO_MAX_WIDTH         = CARD_WIDTH - 16;  // pixels
+const PHOTO_MAX_WIDTH         = Math.floor($(window).width()) - 72;  // pixels
+const PHOTO_MAX_HEIGHT        = Math.floor(PHOTO_MAX_WIDTH * 16 / 9);  // pixels
 const PHOTO_PAGE_URL_TEMPLATE = 'https://commons.wikimedia.org/wiki/File:{filename}';
 const THUMBNAIL_URL_TEMPLATE  = 'https://commons.wikimedia.org/wiki/Special:FilePath/File:{filename}?width={width}';
 const PROGRESS_MAX_VAL        = 339.292;
@@ -50,9 +50,9 @@ const DATE_LOCALE             = [
                                 ];
 const ALT_QID                 = 'Q67080061';
 const ALT_INSCRIPTION_HTML    =
-  '<div class="appendix alt-inscription"><p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
+  '<p class="blurb">The following is an alternate and “more complete” marker inscription <a target="_system" href="https://www.facebook.com/BaybayinAteneo/posts/853607714802471">as suggested by Baybayin</a>, a student organization at the Ateneo de Manila University.</p>' +
   '<p>Diktador. Naging pangulo, 1965 at 1969. Sinubukang ibagsak ng kabataan sa Unang Sigwa, 1970. Sinuspinde ang writ of habeas corpus, 1971. Ipinasa ang proclamation 1081 at nagdeklara ng Batas Militar, 1972. Nagpataw ng Bagong Saligang Batas, 1973. Isinabatas ang “Bagong Lipunan”, 1982. Tumakbo at nanalo sa huwad na halalan, 1981. Natalo sa snap elections ngunit inangkin pa rin ang pagkapangulo, 1986. Pinabagsak ng nagkaisang sambayanang Filipino, 1986. Tumakas sa Amerika at nanatili roon hanggang yumao, 1989. Patagong inilibing bilang bayani, 2016.</p>' +
-  '<p>Pinatay, 3,275. Tinortyur, 35,000. Nawala, 1,600. Ninakaw, $10B.</p></div>';
+  '<p>Pinatay, 3,275. Tinortyur, 35,000. Nawala, 1,600. Ninakaw, $10B.</p>';
 
 // Global static helper objects
 var OnsNavigator;
@@ -861,6 +861,11 @@ function initMarkerDetails() {
 
   $('ons-back-button').click(hideStatusUpdatedMarkers);
 
+  // Set toolbar title
+  $('#details .toolbar__title').append(info.name);
+
+  let top = $(this).find('#details-content');
+
   // Activate status buttons
   // ------------------------------------------------------
 
@@ -877,22 +882,22 @@ function initMarkerDetails() {
   notBookmarkedButton.click(() => { updateStatus(info.qid, 'bookmarked'  ) });
   bookmarkedButton   .click(() => { updateStatus(info.qid, 'unbookmarked') });
 
-  // Prepare header
+  // Construct list for marker details
   // ------------------------------------------------------
 
-  let top = $(this).find('#details-content');
+  top.append($('<ons-list-title>Details</ons-list-title>'));
+  let detailsList = $('<ons-list></ons-list>');
+  top.append(detailsList);
 
-  $('#details .toolbar__title').append(info.name);
+  let dateLi      = generateIconedListItem('calendar');
+  let mainPhotoLi = generateIconedListItem('camera');
+  let textLi      = generateIconedListItem('format-subject', { hasDivider: true });
 
-  let header = $('<header class="marker"></header>');
-  if (info.date !== true) header.append(generateMarkerDateElem(info.date));
-  top.append(header);
-
-  // Construct card for marker details
-  // ------------------------------------------------------
-
-  let card = $('<ons-card></ons-card>');
-  top.append(card);
+  // Add singular unveiling date
+  if (info.date !== true) {
+    detailsList.append(dateLi.item);
+    dateLi.contents.append(generateMarkerDateString(info.date));
+  }
 
   // Default is plaque(s) is monolingual
   let l10nData = info.details;
@@ -906,62 +911,69 @@ function initMarkerDetails() {
 
   // Add photo for multilingual plaque
   if (!plaqueIsMonolingual) {
-    card.append(generateFigureElem(info.details.photo));
+    detailsList.append(mainPhotoLi.item)
+    mainPhotoLi.contents.append(generateFigure(info.details.photo));
   }
 
+  // Add language list item (unless monolingual English)
   let langCodes = $.grep(ORDERED_LANGUAGES, x => l10nData[x]);
   let hasNoEnglish = langCodes[0] !== 'en';
+  let segment;
+  if (langCodes.length > 1 || hasNoEnglish) {
+    let li = generateIconedListItem('translate');
+    detailsList.append(li.item);
+    if (langCodes.length > 1) {
+      segment = $('<div class="segment segment--material"></div>');
+      li.contents.append(segment);
+    }
+    else if (hasNoEnglish) {
+      li.contents.append(LANGUAGE_NAME[langCodes[0]]);
+    }
+  }
 
-  let segment = $('<div class="segment segment--material"></div>');
-  if (langCodes.length === 1) segment.addClass('single');
-  card.append(segment);
+  // Add each language details
   langCodes.forEach((code, index) => {
 
     // Add language to segment
-    let segmentItem = $(
-      '<div class="segment__item segment--material__item">' +
-      '<input type="radio" class="segment__input segment--material__input" name="segment-lang"' +
-      (index === 0 ? ' checked' : '') +
-      '><div class="segment__button segment--material__button">' +
-      LANGUAGE_NAME[code] +
-      '</div>'
-    );
-    segmentItem.click(() => {
-      $('.marker-text.' + code).addClass('active');
-      $(`.marker-text:not(.${code})`).removeClass('active');
-      if (info.date === true) {
-        $('.marker-date.' + code).addClass('active');
-        $(`.marker-date:not(.${code})`).removeClass('active');
-      }
-      $('.marker-figure.' + code).addClass('active');
-      $(`.marker-figure:not(.${code})`).removeClass('active');
-    });
-    segment.append(segmentItem);
-
-    // Process differing dates
-    if (info.date === true) {
-      let div = generateMarkerDateElem(l10nData[code].date);
-      div.addClass(code);
-      if (index === 0) div.addClass('active');
-      card.append(div);
+    if (langCodes.length > 1) {
+      let segmentItem = $(
+        '<div class="segment__item segment--material__item">' +
+        '<input type="radio" class="segment__input segment--material__input" name="segment-lang"' +
+        (index === 0 ? ' checked' : '') +
+        '><div class="segment__button segment--material__button">' +
+        LANGUAGE_NAME[code] +
+        '</div>'
+      );
+      segmentItem.click(() => {
+        $('.multilingual.' + code).addClass('active');
+        $(`.multilingual:not(.${code})`).removeClass('active');
+      });
+      segment.append(segmentItem);
     }
 
-    // Add photo for monolingual plaque
+    // Process multilingual dates
+    if (info.date === true) {
+      let text = generateMarkerDateString(l10nData[code].date);
+      let span = $(`<span class="multilingual ${code}">${text}</span>`);
+      dateLi.contents.append(span);
+      if (index === 0) detailsList.append(dateLi.item);
+    }
+
+    // Add photo(s) for monolingual marker
     if (plaqueIsMonolingual) {
       // Convert to array to support Tanay triptych marker
       if (!Array.isArray(l10nData[code].photo)) l10nData[code].photo = [l10nData[code].photo];
       l10nData[code].photo.forEach(photoData => {
-        let figure = generateFigureElem(photoData);
-        figure.addClass('marker-figure');
-        figure.addClass(code);
-        if (index === 0) figure.addClass('active');
-        card.append(figure);
+        let figure = generateFigure(photoData);
+        figure.addClass(['multilingual', code]);
+        mainPhotoLi.contents.append(figure);
       });
+      if (index === 0) detailsList.append(mainPhotoLi.item);
     }
 
     // Process text
     let textData = (plaqueIsMonolingual ? l10nData[code].text : l10nData[code]);
-    let textDiv = $(`<div class="marker-text ${code + (index === 0 ? ' active' : '')}"></div>`);
+    let textDiv = $(`<div class="marker-text multilingual ${code}"></div>`);
     let isTranslatable = hasNoEnglish && IS_TRANSLATABLE[code];
     let translatableText = '';
     if (textData.title) {
@@ -975,7 +987,7 @@ function initMarkerDetails() {
     if (textData.inscription === '') {
       textDiv.append('<p class="nodata">No inscription encoded yet.</p>');
     }
-    else if (textData.inscription !== null) {
+    else if (textData.inscription) {
       textDiv.append(textData.inscription);
       if (isTranslatable) {
         translatableText += '\n\n' + textData.inscription
@@ -986,83 +998,85 @@ function initMarkerDetails() {
     }
     if (isTranslatable) {
       let url = `https://translate.google.com/#${code}/en/${encodeURIComponent(translatableText)}`;
-      textDiv.append(`<a class="translate-link" target="_system" href="${url}">Translate into English</a>`);
+      textDiv.append(`<p class="translate-link"><a target="_system" href="${url}">Translate into English</a></p>`);
     }
-    card.append(textDiv);
+    textLi.contents.append(textDiv);
+    if (index === 0) detailsList.append(textLi.item);
+
+    // Make first language active
+    if (index === 0) detailsList.find('.multilingual').addClass('active');
   });
 
-  // Add card appendix
-  if (info.wikipedia || info.commons || info.qid === ALT_QID) {
-
-    let wrapperDiv = $('<div class="detail-appendices"></div>');
-    card.append(wrapperDiv);
-
-    let numAppendices = 0;
-    if (info.wikipedia      ) numAppendices++;
-    if (info.commons        ) numAppendices++;
-    if (info.qid === ALT_QID) numAppendices++;
-    let appendixIdx = 0;
-
-    // Add anti-revisionism text
-    if (info.qid === ALT_QID) {
-      let altDiv = $(ALT_INSCRIPTION_HTML);
-      switch (numAppendices) {
-        case 1: altDiv.addClass('appendix-2' ); break;
-        case 2: altDiv.addClass('appendix-15'); break;
-        case 3: altDiv.addClass('appendix-1' );
-      }
-      wrapperDiv.append(altDiv);
-      appendixIdx++;
-    }
-
-    // Add Wikipedia links
-    if (info.wikipedia) {
-      let linksDiv = $('<div class="iconed-appendix wikipedia-links"><ons-icon icon="md-wikipedia"></ons-icon></div>');
-      switch (`${appendixIdx}${numAppendices}`) {
-        case '01':
-        case '13': linksDiv.addClass('appendix-2' ); break;
-        case '02': linksDiv.addClass('appendix-15'); break;
-        case '12': linksDiv.addClass('appendix-3' ); break;
-      }
-      let linksTextDiv = $('<div class="appendix-main"><h3>Learn more on Wikipedia</h3></div>');
-      Object.keys(info.wikipedia).forEach(title => {
-        let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
-        let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
-        linksTextDiv.append(linkP);
-      });
-      linksDiv.append(linksTextDiv);
-      wrapperDiv.append(linksDiv);
-      appendixIdx++;
-    }
-
-    // Add Commons link
-    if (info.commons) {
-      let linkDiv = $(
-        '<div class="iconed-appendix commons-link"><ons-icon icon="md-collection-image"></ons-icon>' +
-        `<a class="appendix-main" target="_system" href="https://commons.wikimedia.org/wiki/Category:${info.commons}">View more photos from Wikimedia Commons</a>` +
-        '</div>'
-      );
-      linkDiv.addClass(numAppendices === 1 ? 'appendix-2' : 'appendix-3');
-      wrapperDiv.append(linkDiv);
-    }
+  // Add anti-revisionism text
+  if (info.qid === ALT_QID) {
+    let altLi = generateIconedListItem('comment-alt-text');
+    altLi.contents.addClass('alt-inscription');
+    altLi.contents.append(ALT_INSCRIPTION_HTML);
+    detailsList.append(altLi.item);
   }
 
-  // Construct card for marker location
+  // Add Wikipedia links
+  if (info.wikipedia) {
+    let wikiLi = generateIconedListItem('wikipedia');
+    wikiLi.contents.addClass('wikipedia-links');
+    wikiLi.contents.append('<h3>Learn more on Wikipedia</h3>');
+    Object.keys(info.wikipedia).forEach(title => {
+      let urlPath = info.wikipedia[title] === true ? title : info.wikipedia[title];
+      let linkP = $(`<p><a target="_system" href="https://en.wikipedia.org/wiki/${encodeURIComponent(urlPath)}">${title}</a></p>`);
+      wikiLi.contents.append(linkP);
+    });
+    detailsList.append(wikiLi.item);
+  }
+
+  // Add Commons link
+  if (info.commons) {
+    let commonsLi = generateIconedListItem('collection-image');
+    commonsLi.contents.addClass('commons-link');
+    commonsLi.contents.append(`<a target="_system" href="https://commons.wikimedia.org/wiki/Category:${info.commons}">View more photos from Wikimedia Commons</a>`);
+    detailsList.append(commonsLi.item);
+  }
+
+  // Construct list for marker location
   // ------------------------------------------------------
 
-  card = $('<ons-card class="location"></ons-card>');
-  top.append(card);
+  top.append('<ons-list-title>Location</ons-list-title>');
+  let locList = $('<ons-list></ons-list>');
+  top.append(locList);
 
-  let button = $('<ons-button><ons-icon icon="md-more-vert"></ons-icon></ons-button>');
-  button.click(e => { document.getElementById('loc-menu').show(e) });
-  card.append(button);
+  let locButton = $('<ons-button id="loc-menu-button"><ons-icon icon="md-pin-drop"></ons-icon></ons-button>');
+  locButton.click(e => { document.getElementById('loc-menu').show(e) });
 
-  if (info.address ) card.append('<p><strong>Address:</strong> ' + info.address);
-  if (info.locDesc ) card.append('<p><strong>Location description:</strong> ' + info.locDesc);
-  if (info.locPhoto) card.append(generateFigureElem(info.locPhoto));
+  let addressLi = generateIconedListItem('pin', { hasRight: true });
+  locList.append(addressLi.item);
+  addressLi.contents.append(info.address);
+  addressLi.item.find('.right').append(locButton);
+
+  if (info.locDesc) {
+    let directionsLi = generateIconedListItem('info-outline');
+    locList.append(directionsLi.item);
+    directionsLi.contents.append(info.locDesc);
+  }
+
+  if (info.locPhoto) {
+    let locationPhotoLi = generateIconedListItem('camera');
+    locList.append(locationPhotoLi.item);
+    locationPhotoLi.contents.append(generateFigure(info.locPhoto));
+  }
 };
 
-function generateMarkerDateElem(dateString) {
+function generateIconedListItem(iconCode, options = {}) {
+  let rightHtml   = 'hasRight'   in options ? '<div class="right"></div>' : '';
+  let dividerAttr = 'hasDivider' in options ? 'longdivider' : 'nodivider';
+  let li = $(`<ons-list-item modifier="${dividerAttr}"><div class="left"><ons-icon icon="md-${iconCode}" class="list-item__icon"></ons-icon></div><div class="center"></div>${rightHtml}</ons-list-item>`);
+  let contents = li.find('.center');
+  li.append(contents);
+  return {
+    item     : li,
+    contents : contents,
+  };
+}
+
+function generateMarkerDateString(dateString) {
   let text;
   if (!dateString) {
     text = 'Unveiling date unknown';
@@ -1074,16 +1088,18 @@ function generateMarkerDateElem(dateString) {
     let date = new Date(dateString);
     text = 'Unveiled on ' + date.toLocaleDateString(...DATE_LOCALE);
   }
-  return $(`<div class="marker-date"><ons-icon icon="md-calendar"></ons-icon> ${text}</div>`);
+  return text;
 }
 
-function generateFigureElem(photoData) {
+function generateFigure(photoData) {
 
   let figure = $('<figure></figure>');
 
   if (photoData) {
 
-    let width = photoData.width >= photoData.height ? PHOTO_MAX_WIDTH : PHOTO_MAX_WIDTH / photoData.height * photoData.width;
+    let width = photoData.height / photoData.width <= 16 / 9
+      ? PHOTO_MAX_WIDTH
+      : PHOTO_MAX_HEIGHT / photoData.height * photoData.width;
     let height = width / photoData.width * photoData.height;
     let encodedFilename = encodeURIComponent(photoData.file.replace(/ /g, '_'));
     let pageUrl = PHOTO_PAGE_URL_TEMPLATE.replace('{filename}', encodedFilename);
@@ -1142,8 +1158,9 @@ function generateFigureElem(photoData) {
   // No actual photo
   else {
     figure.addClass('nodata');
-    let padding = Math.floor(CARD_WIDTH / 5);
+    let padding = Math.floor(PHOTO_MAX_WIDTH / 5);
     figure.css('padding', padding + 'px 16px');
+    figure.css('width', PHOTO_MAX_WIDTH + 'px');
     figure.append('<div>No photo available yet</div>');
     let button = $('<ons-button>Contribute</ons-button>');
     button.click(showContributing);
@@ -1154,9 +1171,10 @@ function generateFigureElem(photoData) {
 }
 
 function replaceFigurePlaceholder(placeholder, href, src, width, height) {
-  placeholder.replaceWith(
-    `<a target="_system" href="${href}"><img src="${src}" width="${width}" height="${height}"></a>`
-  );
+  let anchor = $(`<a target="_system" href="${href}"><img src="${src}" width="${width}" height="${height}"></a>`);
+  anchor.css('width', width + 'px');
+  anchor.css('height', height + 'px');
+  placeholder.replaceWith(anchor);
 }
 
 function showMarkerOnMap() {

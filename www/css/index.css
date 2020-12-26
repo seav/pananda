@@ -312,54 +312,54 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   margin-right: 4px;
 }
 
-.marker-date {
-  font-style: italic;
-  color: #888;
+#details .page__background {
+  background: #fff;
 }
 
-.marker-date ons-icon {
-  width: 20px;
+#details-content ons-list-title {
+  color: #468;
+  background: #e3edf5;
 }
 
-header.marker {
-  margin: 0;
-  padding: 8px 16px 0;
+#details-content ons-list {
+  margin-bottom: 8px;
 }
 
-header.marker h1 {
-  margin: 0;
+#details-content .list-item__left,
+#details-content .list-item__right {
+  align-items: flex-start;
+}
+
+#details-content .list-item__left {
+  min-width: 40px;
+}
+
+#details-content .list-item__icon {
+  width: 24px;
   padding: 0;
   font-size: 24px;
-  font-weight: 400;
+  text-align: center;
+  color: #468;
 }
 
-header.marker .marker-date {
-  margin: 4px 0 0;
-  font-size: 14px;
-}
-
-.card .marker-date {
-  margin: 16px 0;
-  font-size: 14px;
-}
-
-.card p {
-  margin: 0;
-  font-size: 14px;
+#details-content .list-item__center {
+  display: block;
+  padding-right: 16px;
   line-height: 1.5;
 }
 
-.card *+p {
+#details-content p {
+  margin: 0;
+}
+
+#details-content *+p {
   margin-top: 8px;
 }
 
-.segment.single .segment__button {
-  color: rgba(0,0,0,.38);
-  background: #fafafa;
-}
-
-*+.segment {
-  margin-top: 16px;
+#details-content a {
+  font-weight: 600;
+  color: #68a;
+  text-decoration: none;
 }
 
 .segment__item {
@@ -372,33 +372,30 @@ header.marker .marker-date {
   text-transform: uppercase;
 }
 
-.card .marker-date,
-.marker-figure,
-.marker-text {
+.multilingual {
   display: none;
+}
+
+.multilingual.active {
+  display: block;
 }
 
 .marker-text * {
   user-select: text;
 }
 
-.card .marker-date.active,
-.marker-figure.active,
-.marker-text.active {
-  display: block;
-}
-
 figure {
   margin: 0;
-  padding: 8px;
-  text-align: center;
-  background: #eee;
-  color: #888;
+  padding: 0;
 }
 
 figure.nodata {
+  box-sizing: border-box;
+  background: #eee;
   font-size: 16px;
   font-style: italic;
+  text-align: center;
+  color: #888;
 }
 
 figure.nodata ons-button {
@@ -407,7 +404,7 @@ figure.nodata ons-button {
   font-style: normal;
 }
 
-*+figure {
+figure.active+figure.active {
   margin-top: 16px;
 }
 
@@ -415,20 +412,19 @@ figure ons-progress-circular {
   margin: 30px auto;
 }
 
-figure .placeholder, figure img {
+figure a {
   display: block;
-  margin: 0 auto;
+}
+
+figure .placeholder, figure img {
+  display: inline-block;
   background: #ddd;
 }
 
 figure figcaption {
   margin-top: 8px;
-  font-size: 12px;
-}
-
-.marker-figure,
-.marker-text.active {
-  margin-top: 16px;
+  font-size: 14px;
+  color: #888;
 }
 
 .marker-text h2 {
@@ -438,8 +434,8 @@ figure figcaption {
 }
 
 .marker-text h3 {
-  margin: -8px 0 16px;
-  font-size: 16px;
+  margin: -8px 0 8px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -450,88 +446,35 @@ figure figcaption {
 }
 
 .translate-link {
-  display: block;
-  margin-top: 0.5em;
   font-size: 14px;
   text-align: right;
   font-style: italic;
-  color: #68a;
-}
-
-.detail-appendices {
-  margin: 16px -16px -16px;
-}
-
-.detail-appendices > div.appendix-1  { background: rgba(68, 136, 187, 0.1 ) }
-.detail-appendices > div.appendix-15 { background: rgba(68, 136, 187, 0.15) }
-.detail-appendices > div.appendix-2  { background: rgba(68, 136, 187, 0.2 ) }
-.detail-appendices > div.appendix-3  { background: rgba(68, 136, 187, 0.3 ) }
-
-.detail-appendices a {
-  color: #246;
-}
-
-.alt-inscription {
-  padding: 16px;
 }
 
 .alt-inscription .blurb {
   margin: 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #8ac;
+  padding: 12px;
   font-style: italic;
-  color: #68a;
-}
-
-.alt-inscription p:not(.blurb) {
-  margin: 12px 0 0;
-}
-
-.iconed-appendix {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: center;
-}
-
-.iconed-appendix ons-icon {
-  display: block;
-  align-self: flex-start;
-  padding: 16px 16px 16px 0;
-  font-size: 36px;
-  color: #468;
-}
-
-.appendix-main {
-  display: block;
-  flex: 1 1 auto;
-  padding: 16px;
+  color: #48b;
+  background: #e3edf5;
 }
 
 .wikipedia-links h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
-.commons-link {
-  font-size: 14px;
-}
-
-.card.location {
-  min-height: 68px;
-}
-.card.location ons-button {
-  float: right;
-  margin: 0 0 16px 16px;
-  font-size: 22px;
+#loc-menu-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 24px;
+  background: #8ac;
 }
 
 #loc-menu .popover__content {
   min-width: 275px;
-}
-
-.card.location ons-button+p {
-  margin-top: 0;
 }
 
 .misc-page .page__background {
