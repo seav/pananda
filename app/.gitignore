@@ -1,0 +1,6 @@
+/*.json
+/.npmignore
+hooks/
+node_modules/
+platforms/
+plugins/
