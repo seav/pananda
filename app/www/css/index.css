@@ -362,6 +362,12 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   text-decoration: none;
 }
 
+.nodata {
+  font-style: italic;
+  color: #888;
+  user-select: none;
+}
+
 .segment__item {
   width: 100px;
 }
@@ -437,12 +443,6 @@ figure figcaption {
   margin: -8px 0 8px;
   font-size: 18px;
   font-weight: 700;
-}
-
-.marker-text p.nodata {
-  font-style: italic;
-  color: #888;
-  user-select: none;
 }
 
 .translate-link {

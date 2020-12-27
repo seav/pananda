@@ -1077,18 +1077,18 @@ function generateIconedListItem(iconCode, options = {}) {
 }
 
 function generateMarkerDateString(dateString) {
-  let text;
+  let html;
   if (!dateString) {
-    text = 'Unveiling date unknown';
+    html = '<p class="nodata">Unveiling date unknown</p>';
   }
   else if (dateString.length === 4) {
-    text = 'Unveiled in ' + dateString;
+    html = 'Unveiled in ' + dateString;
   }
   else {
     let date = new Date(dateString);
-    text = 'Unveiled on ' + date.toLocaleDateString(...DATE_LOCALE);
+    html = 'Unveiled on ' + date.toLocaleDateString(...DATE_LOCALE);
   }
-  return text;
+  return html;
 }
 
 function generateFigure(photoData) {
