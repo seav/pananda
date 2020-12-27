@@ -1,4 +1,22 @@
-'use strict';
+import './main.css';
+
+import DATA from './data.json';
+
+import {
+  map       as LMap,
+  control   as LControl,
+  tileLayer as LTileLayer,
+  popup     as LPopup,
+  marker    as LMarker,
+  icon      as LIcon,
+} from 'leaflet';
+import {
+  MarkerClusterGroup as LMarkerClusterGroup,
+} from 'leaflet.markercluster';
+
+import MapMarkerUrl       from './map-marker.svg';
+import MapMarkerShadowUrl from './map-marker-shadow.svg';
+import GpsMarkerUrl       from './gps-marker.svg';
 
 const LANGUAGE_NAME           = {
                                   'en' : 'English',
@@ -168,22 +186,22 @@ function initMap() {
   $('#map').height(bg.height());
 
   // Create map and set initial view
-  Map = new L.map('map', {attributionControl: false});
-  L.control.attribution({prefix: false}).addTo(Map);
+  Map = new LMap('map', {attributionControl: false});
+  LControl.attribution({prefix: false}).addTo(Map);
   Map.fitBounds([[MAX_PH_LAT, MAX_PH_LON], [MIN_PH_LAT, MIN_PH_LON]]);
 
   // Add geolocation button
-  let locButton = L.control({ position: 'topleft'});
+  let locButton = LControl({ position: 'topleft'});
   locButton.onAdd = function() {
-    let controlDiv = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-    $(controlDiv).append('<a id="gps-button"><ons-icon icon="md-gps-dot"></ons-icon></a>');
-    $(controlDiv).click(geolocateUser);
-    return controlDiv;
+    let controlDiv = $('<div class="leaflet-bar leaflet-control"></div>');
+    controlDiv.append('<a id="gps-button"><ons-icon icon="md-gps-dot"></ons-icon></a>');
+    controlDiv.click(geolocateUser);
+    return controlDiv[0];
   };
   locButton.addTo(Map);
 
   // Add tile layer
-  new L.tileLayer(
+  new LTileLayer(
     TILE_LAYER_URL,
     {
       attribution : TILE_LAYER_ATTRIBUTION,
@@ -195,7 +213,7 @@ function initMap() {
 function generateMapMarkers() {
 
   // Initialize the map marker cluster
-  Cluster = new L.markerClusterGroup({
+  Cluster = new LMarkerClusterGroup({
     maxClusterRadius: z => {
       if (z <=  15) return 50;
       if (z === 16) return 40;
@@ -217,7 +235,7 @@ function generateMapMarkers() {
       '<ons-button modifier="quiet">Details</ons-button>' +
     '</div>'
   )[0];
-  MapPopup = L.popup({ closeButton: false }).setContent(MapPopupContent);
+  MapPopup = LPopup({ closeButton: false }).setContent(MapPopupContent);
 
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
@@ -228,15 +246,15 @@ function generateMapMarkers() {
     for (; idx < numMarkers && idx < startIdx + CHUNK_LENGTH; idx++) {
       let qid = qids[idx];
       let info = DATA[qid];
-      let mapMarker = L.marker(
+      let mapMarker = LMarker(
         [info.lat, info.lon],
         {
-          icon: L.icon({
-            iconUrl      : 'img/map-marker.svg',
+          icon: LIcon({
+            iconUrl      : MapMarkerUrl,
             iconSize     : [25, 38.6905],
             iconAnchor   : [12, 36],
             popupAnchor  : [0, -30],
-            shadowUrl    : 'img/map-marker-shadow.svg',
+            shadowUrl    : MapMarkerShadowUrl,
             shadowSize   : [40, 30],
             shadowAnchor : [6, 23],
             className    : qid,
@@ -463,12 +481,12 @@ function geolocateUser() {
           lon: position.coords.longitude,
         };
         if (!GpsMarker) {
-          let icon = L.icon({
-            iconUrl    : 'img/gps-marker.svg',
+          let icon = LIcon({
+            iconUrl    : GpsMarkerUrl,
             iconSize   : [48, 48],
             iconAnchor : [24, 24],
           });
-          GpsMarker = L.marker(
+          GpsMarker = LMarker(
             CurrentPosition,
             {
               icon        : icon,
@@ -1247,3 +1265,16 @@ function updateStatus(qid, status) {
 
   StatusUpdatedMarkerQids.push(qid);
 }
+
+window.app = {
+  initMain,
+  initMarkerDetails,
+  initAbout,
+  closeFilterDialog,
+  showContributing,
+  showResources,
+  showPrivacyPolicy,
+  showAbout,
+  showMarkerOnMap,
+  showLocationInMapApp,
+};

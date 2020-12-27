@@ -10,17 +10,11 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
 <title>Panandâ</title>
 <link rel="stylesheet" href="css/onsenui-2.11.1.min.css">
 <link rel="stylesheet" href="css/onsen-css-components.min.css">
-<link rel="stylesheet" href="css/leaflet-1.7.1.css">
-<link rel="stylesheet" href="css/MarkerCluster-1.4.1.css">
-<link rel="stylesheet" href="css/index.css">
 <script src="cordova.js"></script>
 <script src="js/jquery-3.5.1.min.js"></script>
 <script src="js/onsenui-2.11.1.min.js"></script>
-<script src="js/leaflet-1.7.1.js"></script>
-<script src="js/leaflet.markercluster-1.4.1.js"></script>
 <script src="js/imgcache-2.1.1.js"></script>
-<script src="data.js"></script>
-<script src="js/index.js"></script>
+<script src="main.js"></script>
 </head>
 <body>
 
@@ -52,7 +46,7 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(68,102,136,0.2)" stroke-width="12" />
       <circle id="init-progress-bar" cx="60" cy="60" r="54" fill="none" stroke="#468" stroke-width="12" stroke-dasharray="339.292" stroke-dashoffset="339.292" />
     </svg>
-    <script>ons.getScriptPage().onInit = initMain</script>
+    <script>ons.getScriptPage().onInit = app.initMain</script>
   </ons-page>
 </template>
 
@@ -86,15 +80,15 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       <td colspan="3" id="distance-filter-wrapper"></td>
     </tr>
   </table>
-  <ons-button onclick="closeFilterDialog()">Apply</ons-button>
+  <ons-button onclick="app.closeFilterDialog()">Apply</ons-button>
 </ons-dialog>
 
 <ons-popover id="main-menu" cancelable cover-target direction="down">
   <ons-list>
-    <ons-list-item modifier="nodivider"   id="menu-contributing" onclick="showContributing()" >Contributing</ons-list-item>
-    <ons-list-item modifier="longdivider" id="menu-resources"    onclick="showResources()"    >Other resources</ons-list-item>
-    <ons-list-item modifier="nodivider"   id="menu-privacy"      onclick="showPrivacyPolicy()">Privacy policy</ons-list-item>
-    <ons-list-item modifier="nodivider"   id="menu-about"        onclick="showAbout()"        >About</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-contributing" onclick="app.showContributing()" >Contributing</ons-list-item>
+    <ons-list-item modifier="longdivider" id="menu-resources"    onclick="app.showResources()"    >Other resources</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-privacy"      onclick="app.showPrivacyPolicy()">Privacy policy</ons-list-item>
+    <ons-list-item modifier="nodivider"   id="menu-about"        onclick="app.showAbout()"        >About</ons-list-item>
   </ons-list>
 </ons-popover>
 
@@ -110,14 +104,14 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       </div>
     </ons-toolbar>
     <div id="details-content"></div>
-    <script>ons.getScriptPage().onInit = initMarkerDetails</script>
+    <script>ons.getScriptPage().onInit = app.initMarkerDetails</script>
   </ons-page>
 </template>
 
 <ons-popover id="loc-menu" cancelable cover-target direction="left down up">
   <ons-list>
-    <ons-list-item modifier="nodivider" id="menu-mainmap" onclick="showMarkerOnMap()"     >View location on main map</ons-list-item>
-    <ons-list-item modifier="nodivider" id="menu-extmap"  onclick="showLocationInMapApp()">View location in external map app</ons-list-item>
+    <ons-list-item modifier="nodivider" id="menu-mainmap" onclick="app.showMarkerOnMap()"     >View location on main map</ons-list-item>
+    <ons-list-item modifier="nodivider" id="menu-extmap"  onclick="app.showLocationInMapApp()">View location in external map app</ons-list-item>
   </ons-list>
 </ons-popover>
 
@@ -235,7 +229,7 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
       <dd>Sector4F</dd>
     </dl>
     <footer>v1.9.0</footer>
-    <script>ons.getScriptPage().onInit = initAbout</script>
+    <script>ons.getScriptPage().onInit = app.initAbout</script>
   </ons-page>
 </template>
 
