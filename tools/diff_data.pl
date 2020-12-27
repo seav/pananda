@@ -5,6 +5,7 @@ use warnings;
 use 5.012;
 use feature "unicode_strings";
 
+use Encode 'decode';
 use File::Slurp;
 use JSON::MaybeXS;
 
@@ -45,7 +46,7 @@ foreach my $qid (sort keys %$data_a) {
     my $json_b = JSON->new->utf8->pretty->canonical->encode($data_b->{$qid});
     write_file("tmp-data-a.json", $json_a);
     write_file("tmp-data-b.json", $json_b);
-    my $diff = `diff tmp-data-a.json tmp-data-b.json`;
+    my $diff = decode('UTF-8', `diff tmp-data-a.json tmp-data-b.json`);
     next unless $diff;
 
     $num_modified_items++;
