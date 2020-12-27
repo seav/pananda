@@ -2,6 +2,27 @@ import './main.css';
 
 import DATA from './data.json';
 
+import $ from 'jquery';
+import ons from 'onsenui/esm';
+import 'onsenui/esm/elements/ons-navigator';
+import 'onsenui/esm/elements/ons-page';
+import 'onsenui/esm/elements/ons-toolbar';
+import 'onsenui/esm/elements/ons-toolbar-button';
+import 'onsenui/esm/elements/ons-back-button';
+import 'onsenui/esm/elements/ons-button';
+import 'onsenui/esm/elements/ons-icon';
+import 'onsenui/esm/elements/ons-list';
+import 'onsenui/esm/elements/ons-list-title';
+import 'onsenui/esm/elements/ons-list-item';
+import 'onsenui/esm/elements/ons-card';
+import 'onsenui/esm/elements/ons-select';
+import 'onsenui/esm/elements/ons-search-input';
+import 'onsenui/esm/elements/ons-radio';
+import 'onsenui/esm/elements/ons-dialog';
+import 'onsenui/esm/elements/ons-popover';
+import 'onsenui/esm/elements/ons-alert-dialog';
+import 'onsenui/esm/elements/ons-alert-dialog-button';
+import 'onsenui/esm/elements/ons-toast';
 import {
   map       as LMap,
   control   as LControl,
@@ -17,6 +38,8 @@ import {
 import MapMarkerUrl       from './map-marker.svg';
 import MapMarkerShadowUrl from './map-marker-shadow.svg';
 import GpsMarkerUrl       from './gps-marker.svg';
+
+window.ons = ons;
 
 const LANGUAGE_NAME           = {
                                   'en' : 'English',
