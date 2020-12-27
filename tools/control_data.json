@@ -148,7 +148,13 @@
   "lon": 123.41920,
   "region": "Zamboanga Peninsula",
   "macroAddress": "Dapitan, Zamboanga del Norte",
-  "address": "Sunset Boulevard, Dapitan, Zamboanga del Norte"
+  "address": "Sunset Boulevard, Dapitan, Zamboanga del Norte",
+  "locPhoto" : {
+    "file": "Site where Rizal Landed in Dapitan.jpg",
+    "credit": "National Historical Commission of the Philippines",
+    "width": 1200,
+    "height": 1600
+  }
 },
 "Q28927264": {
   "name": "José Rizal at Dapitan Church",
@@ -176,7 +182,13 @@
   "lon": 123.42497,
   "region": "Zamboanga Peninsula",
   "macroAddress": "Dapitan, Zamboanga del Norte",
-  "address": "Dapitan Church, Dapitan, Zamboanga del Norte"
+  "address": "Dapitan Church, Dapitan, Zamboanga del Norte",
+  "locPhoto" : {
+    "file" : "Saint James Church in Dapitan.jpg",
+    "credit" : "National Historical Commission of the Philippines",
+    "width" : 1600,
+    "height" : 1200
+  }
 },
 "Q41962281": {
   "name": "Gomburza execution site",
