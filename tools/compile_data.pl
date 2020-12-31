@@ -42,6 +42,7 @@ use constant {
     COMMONS_API_URL           => 'https://commons.wikimedia.org/w/api.php',
     WIKIDATA_API_URL          => 'https://www.wikidata.org/w/api.php',
     WIKIDATA_MAX_STR_LENGTH   => 1500,
+    MAX_URL_LENGTH            => 2000,
     SKIPPED_ADDRESS_LABELS    => {
         Q2863958  => 1,  # arrondissement of Paris
         Q88521107 => 1,  # ZDS Paris
@@ -1104,11 +1105,21 @@ sub get_photo_metadata_titles {
         }
     }
 
-    # Group into chunks of 20 files to avoid MediaWiki API 'URI too long' error
-    foreach (@titles) { s/"/\\"/g }
+    # Group into chunks and at most MAX_URL_LENGTH characters
+    # to avoid MediaWiki API HTTP 414 (URI too long) error
+    foreach (@titles) { s/"/\\"/g }  # Escape quotes for WDQS
     my @chunks;
-    push @chunks, [splice @titles, 0, 40] while @titles;
-    foreach (@chunks) { $_ = join '|', @$_ }
+    my $title_list = shift @titles;
+    foreach my $title (@titles) {
+        if (length($title_list) + length($title) + 1 > MAX_URL_LENGTH) {
+            push @chunks, $title_list;
+            $title_list = $title;
+        }
+        else {
+            $title_list .= "|$title";
+        }
+    }
+    push @chunks, $title_list;
     return \@chunks;
 }
 
