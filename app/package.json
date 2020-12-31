@@ -28,6 +28,7 @@
     ]
   },
   "dependencies": {
+    "@chrisben/imgcache.js": "^2.1.1",
     "cordova": "^10.0.0",
     "cordova-android": "^9.0.0",
     "cordova-plugin-android-gpsdetect": "0.0.3",

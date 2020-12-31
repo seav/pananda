@@ -34,6 +34,7 @@ import {
 import {
   MarkerClusterGroup as LMarkerClusterGroup,
 } from 'leaflet.markercluster';
+import ImgCache from '@chrisben/imgcache.js';
 
 import MapMarkerUrl       from './map-marker.svg';
 import MapMarkerShadowUrl from './map-marker-shadow.svg';
