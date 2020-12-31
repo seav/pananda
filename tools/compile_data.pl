@@ -45,7 +45,7 @@ use constant {
     MAX_URL_LENGTH            => 2000,
     SKIPPED_ADDRESS_LABELS    => {
         Q2863958  => 1,  # arrondissement of Paris
-        Q88521107 => 1,  # ZDS Paris
+        Q16665915 => 1,  # Metropolis of Greater Paris
         Q90870    => 1,  # Arrondissement of Brussels-Capital
         Q240      => 1,  # Brussels-Capital Region
         Q90948    => 1,  # Arrondissement of Ghent
@@ -55,7 +55,7 @@ use constant {
         Q3551781  => 1,  # District of Columbia
     },
     SKIP_ADDRESS_HAVING => {
-        Q16665915 => 1,  # Metropolis of Greater Paris
+        Q88521107 => 1,  # ZDS Paris
         Q212429   => 1,  # Metropolitan France
     },
     ADDRESS_LABEL_REPLACEMENT => {
@@ -120,6 +120,7 @@ sub query_data {
             title                => 'address data',
             sparql_query         => get_address_data_sparql_query(),
             csv_record_processor => \&process_address_data_csv_record,
+            post_processor       => \&post_process_address_data,
         },
         {
             title                => 'title data',
@@ -632,6 +633,17 @@ sub process_address_data_csv_record {
 
     $marker_data->{locDesc} = $directions if $directions;
 
+    return;
+}
+
+# -------------------------------------------------------------------
+
+# Check that all markers have an address
+sub post_process_address_data {
+    while (my ($qid, $marker_data) = each %Data) {
+        next if exists $marker_data->{address};
+        log_error($qid, "Missing address");
+    }
     return;
 }
 
