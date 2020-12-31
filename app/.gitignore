@@ -4,3 +4,11 @@ hooks/
 node_modules/
 platforms/
 plugins/
+res/icon/b*/
+res/icon/t*/
+res/icon/w*/
+res/screen/b*/
+res/screen/t*/
+res/screen/w*/
+www/assets/
+www/main.js

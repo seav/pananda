@@ -79,7 +79,6 @@ const PHOTO_MAX_WIDTH         = Math.floor($(window).width()) - 72;  // pixels
 const PHOTO_MAX_HEIGHT        = Math.floor(PHOTO_MAX_WIDTH * 16 / 9);  // pixels
 const PHOTO_PAGE_URL_TEMPLATE = 'https://commons.wikimedia.org/wiki/File:{filename}';
 const THUMBNAIL_URL_TEMPLATE  = 'https://commons.wikimedia.org/wiki/Special:FilePath/File:{filename}?width={width}';
-const PROGRESS_MAX_VAL        = 339.292;
 const CHUNK_LENGTH            = 100;  // markers processed
 const SEARCH_DELAY            = 500;  // milliseconds
 const DATE_LOCALE             = [
@@ -179,20 +178,23 @@ function initCordova() {
 }
 
 function initMain() {
+  if ('splashscreen' in navigator) navigator.splashscreen.hide();
   OnsNavigator = document.getElementById('navigator');
   $('#view-mode-button').click(toggleView);
   $('#this-day-button' ).click(toggleOnThisDay);
   $('ons-toolbar-button[icon="md-tune"          ]').click(showFilterDialog);
   $('ons-toolbar-button[icon="md-more-vert"     ]').click(showMainMenu    );
   initMap();
-  if ('splashscreen' in navigator) navigator.splashscreen.hide();
   generateMapMarkers();
   initList();
   initFilterDialog();
   initFlatTexts();
   $('#explore').on('initfinished', () => {
-    $('#init-progress')[0].setAttribute('stroke-dashoffset', 0);
-    $('#init-progress').fadeOut();
+    document.getElementById('load-status').style.width = '100%';
+    const splashScreen = document.getElementById('splash');
+    splashScreen.style.opacity = 0;
+    setTimeout(() => { splashScreen.style.display = 'none' }, 550);
+
     if (DistanceFilterValue) {
       applyFilters({ suppressToast: true });
       geolocateUser();
@@ -263,7 +265,8 @@ function generateMapMarkers() {
 
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
-  let progressElem = document.getElementById('init-progress-bar');
+  let progressElem = document.getElementById('load-status');
+  let progressMaxWidth = document.getElementById('load-progress').clientWidth - 10;
 
   let processMapChunk = function(startIdx) {
     let idx = startIdx;
@@ -290,7 +293,7 @@ function generateMapMarkers() {
     }
 
     let progress = NumMarkersInitialized / numMarkers / 2;
-    progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
+    progressElem.style.width = (progressMaxWidth * progress + 10) + 'px';
     if (idx + 1 <= numMarkers) {
       setTimeout(function() { processMapChunk(idx) }, 17);
     }
@@ -358,7 +361,8 @@ function initList() {
   let qids = Object.keys(DATA);
   let numMarkers = qids.length;
   let listItems = [];
-  let progressElem = document.getElementById('init-progress-bar');
+  let progressElem = document.getElementById('load-status');
+  let progressMaxWidth = document.getElementById('load-progress').clientWidth - 10;
   let list = $('#main-list ons-list');
 
   let processListChunk = function(startIdx) {
@@ -393,7 +397,7 @@ function initList() {
     }
 
     let progress = NumMarkersInitialized / numMarkers / 2;
-    progressElem.setAttribute('stroke-dashoffset', PROGRESS_MAX_VAL * (1 - progress));
+    progressElem.style.width = (progressMaxWidth * progress + 10) + 'px';
     if (idx + 1 <= numMarkers) {
       setTimeout(function() { processListChunk(idx) }, 17);
     }

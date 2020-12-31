@@ -15,6 +15,12 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
 
 <ons-navigator id="navigator" animation="slide" page="explore.html"></ons-navigator>
 
+<div id="splash">
+  <img id="splash-logo" src="static/logo.svg">
+  <img id="splash-wordtype" src="static/wordtype.svg">
+  <div id="load-progress"><div id="load-status"></div></div>
+</div>
+
 <template id="explore.html">
   <ons-page id="explore">
     <ons-toolbar>
@@ -37,10 +43,6 @@ https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content
         <ons-button modifier="large">Contribute</ons-button>
       </div>
     </div>
-    <svg id="init-progress" width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
-      <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(68,102,136,0.2)" stroke-width="12" />
-      <circle id="init-progress-bar" cx="60" cy="60" r="54" fill="none" stroke="#468" stroke-width="12" stroke-dasharray="339.292" stroke-dashoffset="339.292" />
-    </svg>
     <script>ons.getScriptPage().onInit = app.initMain</script>
   </ons-page>
 </template>
