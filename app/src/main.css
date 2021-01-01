@@ -211,6 +211,7 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 
 #main-list ons-list-item .center {
   display: block;
+  pointer-events: none;
 }
 
 #main-list .address,
@@ -227,6 +228,7 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
 
 #main-list .right {
   padding: 0 4px 0 0;
+  pointer-events: none;
 }
 
 #main-list .zmdi {
@@ -238,6 +240,7 @@ ons-toolbar-button[icon="md-bookmark-outline"] {
   line-height: 36px;
   font-size: 22px;
   text-align: center;
+  pointer-events: all;
 }
 
 #main-list .zmdi-eye-off,
