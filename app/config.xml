@@ -1,12 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="com.sector4f.pananda" version="1.10.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Panandâ</name>
-    <description>
-        App to explore the National Historical Commission of the Philippines historical markers.
-    </description>
-    <author email="info@sector4f.com" href="https://www.sector4f.com">
-        Sector4F
-    </author>
+    <description>Explore the NHCP historical markers of the Philippines</description>
+    <author email="info@sector4f.com" href="https://www.sector4f.com">Sector4F</author>
     <content src="index.html" />
     <access origin="*" />
     <access origin="cdvfile://*" />
@@ -19,6 +15,7 @@
     <allow-intent href="cdvfile://*" />
     <preference name="Orientation" value="portrait" />
     <preference name="StatusBarBackgroundColor" value="#112233" />
+    <preference name="NavigationBarBackgroundColor" value="#112233" />
     <preference name="SplashScreen" value="screen" />
     <preference name="AutoHideSplashScreen" value="false" />
     <preference name="ShowSplashScreenSpinner" value="false" />
@@ -56,6 +53,7 @@
     <plugin name="cordova-plugin-file-transfer" spec="~1.7.1" />
     <plugin name="cordova-plugin-geolocation" spec="~4.1.0" />
     <plugin name="cordova-plugin-headercolor" spec="~1.0.0" />
+    <plugin name="cordova-plugin-navigationbar-color" spec="~0.1.0" />
     <plugin name="cordova-plugin-splashscreen" spec="~6.0.0" />
     <plugin name="cordova-plugin-statusbar" spec="~2.4.3" />
     <plugin name="cordova-plugin-whitelist" spec="~1.3.4" />
