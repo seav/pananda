@@ -626,11 +626,14 @@ figure figcaption {
 }
 
 #about .socmed-links a+a {
-  margin-left: 24px;
+  margin-left: 10px;
 }
 
-#about .socmed-links img {
+#about .socmed-links span {
+  display: inline-block;
   width: 48px;
+  font-size: 48px;
+  color: #68a;
 }
 
 #about p {
