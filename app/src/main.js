@@ -34,7 +34,6 @@ import {
 import {
   MarkerClusterGroup as LMarkerClusterGroup,
 } from 'leaflet.markercluster';
-import ImgCache from '@chrisben/imgcache.js';
 
 import MapMarkerUrl       from './map-marker.svg';
 import MapMarkerShadowUrl from './map-marker-shadow.svg';
@@ -108,9 +107,6 @@ var MapPopupContent;
 var MapPopupMarker;
 var GpsMarker;
 
-// Global static flags
-var ImgCacheIsAvailable = false;
-
 // Preferences
 var VisitedFilterValue;
 var BookmarkedFilterValue;
@@ -173,14 +169,6 @@ function initCordova() {
   if (cordova.platformId === 'android') {
     StatusBar.backgroundColorByHexString("#123");
   }
-  ImgCache.options.skipURIencoding = true;
-  if (cordova.file.externalCacheDirectory) {
-    ImgCache.options.cordovaFilesystemRoot = cordova.file.externalCacheDirectory;
-  }
-  else {
-    ImgCache.options.cordovaFilesystemRoot = cordova.file.dataDirectory;
-  }
-  ImgCache.init(() => { ImgCacheIsAvailable = true });
 }
 
 // -----------------------------------------------------------------------------
@@ -1198,56 +1186,14 @@ function generateFigure(photoData) {
     const pageUrl = PHOTO_PAGE_URL_TEMPLATE.replace('{filename}', encodedFilename);
     const thumbUrl = THUMBNAIL_URL_TEMPLATE
       .replace('{filename}', encodedFilename)
-      .replace('{width}', Math.floor(width) * 2);
+      .replace('{width}', Math.floor(width * 2));
 
-    const placeholder = $('<div class="placeholder"></div>');
-    placeholder.width(width);
-    placeholder.height(height);
-    figure.append(placeholder);
+    const anchor = $(`<a target="_system" href="${pageUrl}"></a>`);
+    anchor.width(width);
+    anchor.height(height);
+    anchor.append(`<img src="${thumbUrl}" width="${width}" height="${height}">`);
+    figure.append(anchor);
     figure.append(`<figcaption>${photoData.credit}</figcaption>`);
-
-    if (ImgCacheIsAvailable) {
-      // TODO: Implement cache validation
-      // TODO: Convert to Promise API
-      ImgCache.isCached(
-        thumbUrl,
-        function(path, success) {
-          if (success) {
-            ImgCache.getCachedFileURL(
-              thumbUrl,
-              function(thumbUrl, path) {
-                replaceFigurePlaceholder(placeholder, pageUrl, path, width, height);
-              },
-              function() {
-                replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
-              },
-            );
-          }
-          else {
-            ImgCache.cacheFile(
-              thumbUrl,
-              function () {
-                ImgCache.getCachedFileURL(
-                  thumbUrl,
-                  function(thumbUrl, path) {
-                    replaceFigurePlaceholder(placeholder, pageUrl, path, width, height);
-                  },
-                  function() {
-                    replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
-                  },
-                );
-              },
-              function() {
-                replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
-              },
-            );
-          }
-        },
-      );
-    }
-    else {
-      replaceFigurePlaceholder(placeholder, pageUrl, thumbUrl, width, height);
-    }
   }
 
   // No actual photo
@@ -1262,15 +1208,6 @@ function generateFigure(photoData) {
   }
 
   return figure;
-}
-
-// -----------------------------------------------------------------------------
-
-function replaceFigurePlaceholder(placeholder, href, src, width, height) {
-  const anchor = $(`<a target="_system" href="${href}"><img src="${src}" width="${width}" height="${height}"></a>`);
-  anchor.css('width', width + 'px');
-  anchor.css('height', height + 'px');
-  placeholder.replaceWith(anchor);
 }
 
 // -----------------------------------------------------------------------------

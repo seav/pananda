@@ -469,7 +469,7 @@ figure a {
 }
 
 figure .placeholder, figure img {
-  display: inline-block;
+  display: block;
   background: #ddd;
 }
 

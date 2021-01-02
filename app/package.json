@@ -13,9 +13,6 @@
   "cordova": {
     "plugins": {
       "cordova-plugin-android-gpsdetect": {},
-      "cordova-plugin-device": {},
-      "cordova-plugin-file": {},
-      "cordova-plugin-file-transfer": {},
       "cordova-plugin-geolocation": {},
       "cordova-plugin-headercolor": {},
       "cordova-plugin-navigationbar-color": {},
@@ -28,13 +25,9 @@
     ]
   },
   "dependencies": {
-    "@chrisben/imgcache.js": "^2.1.1",
     "cordova": "^10.0.0",
     "cordova-android": "^9.0.0",
     "cordova-plugin-android-gpsdetect": "0.0.3",
-    "cordova-plugin-device": "^2.0.3",
-    "cordova-plugin-file": "^6.0.2",
-    "cordova-plugin-file-transfer": "^1.7.1",
     "cordova-plugin-geolocation": "^4.1.0",
     "cordova-plugin-headercolor": "^1.0.0",
     "cordova-plugin-navigationbar-color": "^0.1.0",
