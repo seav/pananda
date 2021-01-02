@@ -460,15 +460,7 @@ figure.active+figure.active {
   margin-top: 16px;
 }
 
-figure ons-progress-circular {
-  margin: 30px auto;
-}
-
-figure a {
-  display: block;
-}
-
-figure .placeholder, figure img {
+figure .placeholder, figure a, figure img {
   display: block;
   background: #ddd;
 }

@@ -1,7 +1,7 @@
 {
   "name": "com.sector4f.pananda",
   "displayName": "Panandâ",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "Explore the NHCP historical markers of the Philippines",
   "private": true,
   "scripts": {

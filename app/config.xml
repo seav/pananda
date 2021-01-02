@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.sector4f.pananda" version="1.10.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget id="com.sector4f.pananda" version="1.10.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Panandâ</name>
     <description>Explore the NHCP historical markers of the Philippines</description>
     <author email="info@sector4f.com" href="https://www.sector4f.com">Sector4F</author>
@@ -31,6 +31,12 @@
         <icon background="@color/background" density="xhdpi" foreground="res/icon/android/96-adaptive-fg.png" src="res/icon/android/96.png" />
         <icon background="@color/background" density="xxhdpi" foreground="res/icon/android/144-adaptive-fg.png" src="res/icon/android/144.png" />
         <icon background="@color/background" density="xxxhdpi" foreground="res/icon/android/192-adaptive-fg.png" src="res/icon/android/192.png" />
+        <splash density="hdpi" src="res/screen/android/splash.png" />
+        <splash density="ldpi" src="res/screen/android/splash.png" />
+        <splash density="mdpi" src="res/screen/android/splash.png" />
+        <splash density="xhdpi" src="res/screen/android/splash.png" />
+        <splash density="xxhdpi" src="res/screen/android/splash.png" />
+        <splash density="xxxhdpi" src="res/screen/android/splash.png" />
         <splash density="port-hdpi" src="res/screen/android/splash.png" />
         <splash density="port-ldpi" src="res/screen/android/splash.png" />
         <splash density="port-mdpi" src="res/screen/android/splash.png" />
