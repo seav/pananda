@@ -33,7 +33,8 @@ use constant {
     REGION_QID                => 'Q24698',
     PROVINCE_QID              => 'Q24746',
     HUC_QID                   => 'Q29946056',
-    CITY_QID                  => 'Q104157',
+    ICC_QID                   => 'Q106079704',
+    CC_QID                    => 'Q106078286',
     MUNICIPALITY_QID          => 'Q24764',
     METRO_MANILA_QID          => 'Q13580',
     MANILA_QID                => 'Q1461',
@@ -431,13 +432,14 @@ WHERE {
       ?admin0 wdt:P31 ?admin0Type .
       BIND(SUBSTR(STR(?admin0Type), 32) AS ?admin0TypeQid) .
       FILTER (
-        ?admin0Type = wd:Q6256     ||
-        ?admin0Type = wd:Q24698    ||
-        ?admin0Type = wd:Q24746    ||
-        ?admin0Type = wd:Q104157   ||
-        ?admin0Type = wd:Q29946056 ||
-        ?admin0Type = wd:Q24764    ||
-        ?admin0Type = wd:Q61878    ||
+        ?admin0Type = wd:Q6256      ||
+        ?admin0Type = wd:Q24698     ||
+        ?admin0Type = wd:Q24746     ||
+        ?admin0Type = wd:Q29946056  ||
+        ?admin0Type = wd:Q106079704 ||
+        ?admin0Type = wd:Q106078286 ||
+        ?admin0Type = wd:Q24764     ||
+        ?admin0Type = wd:Q61878     ||
         ?admin0Type = wd:Q15634883
       )
     }
@@ -448,13 +450,14 @@ WHERE {
         ?admin1 wdt:P31 ?admin1Type .
         BIND(SUBSTR(STR(?admin1Type), 32) AS ?admin1TypeQid) .
         FILTER (
-          ?admin1Type = wd:Q6256     ||
-          ?admin1Type = wd:Q24698    ||
-          ?admin1Type = wd:Q24746    ||
-          ?admin1Type = wd:Q104157   ||
-          ?admin1Type = wd:Q29946056 ||
-          ?admin1Type = wd:Q24764    ||
-          ?admin1Type = wd:Q61878    ||
+          ?admin1Type = wd:Q6256      ||
+          ?admin1Type = wd:Q24698     ||
+          ?admin1Type = wd:Q24746     ||
+          ?admin1Type = wd:Q29946056  ||
+          ?admin1Type = wd:Q106079704 ||
+          ?admin1Type = wd:Q106078286 ||
+          ?admin1Type = wd:Q24764     ||
+          ?admin1Type = wd:Q61878     ||
           ?admin1Type = wd:Q15634883
         )
       }
@@ -465,13 +468,14 @@ WHERE {
           ?admin2 wdt:P31 ?admin2Type .
           BIND(SUBSTR(STR(?admin2Type), 32) AS ?admin2TypeQid) .
           FILTER (
-            ?admin2Type = wd:Q6256     ||
-            ?admin2Type = wd:Q24698    ||
-            ?admin2Type = wd:Q24746    ||
-            ?admin2Type = wd:Q104157   ||
-            ?admin2Type = wd:Q29946056 ||
-            ?admin2Type = wd:Q24764    ||
-            ?admin2Type = wd:Q61878    ||
+            ?admin2Type = wd:Q6256      ||
+            ?admin2Type = wd:Q24698     ||
+            ?admin2Type = wd:Q24746     ||
+            ?admin2Type = wd:Q29946056  ||
+            ?admin2Type = wd:Q106079704 ||
+            ?admin2Type = wd:Q106078286 ||
+            ?admin2Type = wd:Q24764     ||
+            ?admin2Type = wd:Q61878     ||
             ?admin2Type = wd:Q15634883
           )
         }
@@ -482,12 +486,13 @@ WHERE {
             ?admin3 wdt:P31 ?admin3Type .
             BIND(SUBSTR(STR(?admin3Type), 32) AS ?admin3TypeQid) .
             FILTER (
-              ?admin3Type = wd:Q6256     ||
-              ?admin3Type = wd:Q24698    ||
-              ?admin3Type = wd:Q24746    ||
-              ?admin3Type = wd:Q104157   ||
-              ?admin3Type = wd:Q29946056 ||
-              ?admin3Type = wd:Q24764    ||
+              ?admin3Type = wd:Q6256      ||
+              ?admin3Type = wd:Q24698     ||
+              ?admin3Type = wd:Q24746     ||
+              ?admin3Type = wd:Q29946056  ||
+              ?admin3Type = wd:Q106079704 ||
+              ?admin3Type = wd:Q106078286 ||
+              ?admin3Type = wd:Q24764     ||
               ?admin3Type = wd:Q61878
 
             )
@@ -501,10 +506,11 @@ WHERE {
     FILTER EXISTS { ?island wdt:P31/wdt:P279* wd:Q23442 }
     ?island wdt:P131/wdt:P31 ?islandAdminType .
     FILTER (
-      ?islandAdminType = wd:Q104157   ||
-      ?islandAdminType = wd:Q29946056 ||
-      ?islandAdminType = wd:Q24764    ||
-      ?islandAdminType = wd:Q15634883 ||
+      ?islandAdminType = wd:Q29946056  ||
+      ?islandAdminType = wd:Q106079704 ||
+      ?islandAdminType = wd:Q106078286 ||
+      ?islandAdminType = wd:Q24764     ||
+      ?islandAdminType = wd:Q15634883  ||
       ?islandAdminType = wd:Q61878
     )
     BIND(SUBSTR(STR(?islandAdminType), 32) AS ?islandAdminTypeQid) .
@@ -558,7 +564,8 @@ sub process_address_data_csv_record {
                     $admin_types[$level - 1] ne REGION_QID   and
                     (
                         (
-                            $admin_types[$level - 1] ne CITY_QID and
+                            $admin_types[$level - 1] ne CC_QID and
+                            $admin_types[$level - 1] ne ICC_QID and
                             $admin_types[$level - 1] ne HUC_QID
                         ) or
                         $admin_types[$level] ne REGION_QID or
@@ -577,7 +584,8 @@ sub process_address_data_csv_record {
                 (
                     scalar @macro_address_parts > 0 or
                     $admin_types[$level] eq HUC_QID or
-                    $admin_types[$level] eq CITY_QID or
+                    $admin_types[$level] eq ICC_QID or
+                    $admin_types[$level] eq CC_QID or
                     $admin_types[$level] eq MUNICIPALITY_QID or
                     $admin_types[$level] eq DISTRICT_OF_MANILA_QID
                 )
