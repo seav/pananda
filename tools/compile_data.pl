@@ -61,6 +61,7 @@ use constant {
     },
     ADDRESS_LABEL_REPLACEMENT => {
         Q245546 => '6th arrondissement',
+        Q239    => 'Brussels',
     },
     OVERSEAS_MACRO_ADDRESS    => {
         Q30130266 => 'Tokyo, Japan',
@@ -646,11 +647,12 @@ sub process_address_data_csv_record {
 
 # -------------------------------------------------------------------
 
-# Check that all markers have an address
+# Check that all markers have an address and a macro address
 sub post_process_address_data {
     while (my ($qid, $marker_data) = each %Data) {
-        next if exists $marker_data->{address};
-        log_error($qid, "Missing address");
+        log_error($qid, "Missing address") if not exists $marker_data->{address};
+        log_error($qid, "Missing macro address")
+            if not exists $marker_data->{macroAddress} or not $marker_data->{macroAddress};
     }
     return;
 }
