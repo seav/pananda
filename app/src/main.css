@@ -23,7 +23,7 @@
   width: 40%;
 }
 
-#splash-wordtype {
+#splash-wordmark {
   width: 65%;
 }
 
@@ -659,6 +659,19 @@ figure figcaption {
 
 #credits dd+dt {
   margin-top: 16px;
+}
+
+#credits dd.in-support {
+  margin: 15px 0;
+}
+
+#credits dd.in-support a {
+  display: block;
+}
+
+#credits dd.in-support img {
+  display: block;
+  margin: 10px auto;
 }
 
 #about footer {
