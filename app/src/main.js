@@ -160,6 +160,11 @@ function initApp() {
   RegionFilterValue     = localStorage.getItem('region-filter'    );
   DistanceFilterValue   = localStorage.getItem('distance-filter'  );
   if (DistanceFilterValue) DistanceFilterValue = parseInt(DistanceFilterValue);
+
+  // Set app first open time
+  if (!localStorage.getItem('PN-first-open')) {
+    localStorage.setItem('PN-first-open', new Date().getTime());
+  }
 }
 
 // -----------------------------------------------------------------------------
